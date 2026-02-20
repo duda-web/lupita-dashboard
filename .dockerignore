@@ -1,0 +1,11 @@
+node_modules
+client/node_modules
+client/dist
+dist
+*.db-wal
+*.db-shm
+.git
+.DS_Store
+data/inbox/*.xlsx
+data/processed/
+data/errors/

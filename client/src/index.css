@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 37 91% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 37 91% 55%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 37 91% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 25%;
+    --input: 217 33% 25%;
+    --ring: 37 91% 55%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* react-day-picker overrides for dark mode and Lupita theme */
+.lupita-calendar {
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-accent-background-color: hsl(var(--primary) / 0.15);
+  --rdp-day-height: 36px;
+  --rdp-day-width: 36px;
+  color: hsl(var(--foreground));
+}
+
+.lupita-calendar .rdp-month_caption {
+  color: hsl(var(--foreground));
+}
+
+.lupita-calendar .rdp-weekday {
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+}
+
+.lupita-calendar .rdp-week_number {
+  color: hsl(var(--muted-foreground) / 0.5);
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+}
+
+.lupita-calendar .rdp-day button {
+  color: hsl(var(--foreground));
+  border-radius: 6px;
+}
+
+.lupita-calendar .rdp-day button:hover {
+  background-color: hsl(var(--primary) / 0.2);
+}
+
+.lupita-calendar .rdp-selected .rdp-day_button {
+  background-color: hsl(var(--primary));
+  color: white;
+  font-weight: 600;
+}
+
+.lupita-calendar .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: hsl(var(--primary));
+  font-weight: 700;
+}
+
+.lupita-calendar .rdp-outside .rdp-day_button {
+  color: hsl(var(--muted-foreground) / 0.35);
+}
+
+.lupita-calendar .rdp-chevron {
+  fill: hsl(var(--muted-foreground));
+}
+
+.lupita-calendar .rdp-button_previous:hover,
+.lupita-calendar .rdp-button_next:hover {
+  background-color: hsl(var(--muted));
+}

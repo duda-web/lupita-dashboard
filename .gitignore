@@ -1,0 +1,10 @@
+node_modules/
+dist/
+client/node_modules/
+client/dist/
+*.db
+.env
+data/inbox/*.xlsx
+data/processed/
+data/errors/
+.DS_Store
