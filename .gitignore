@@ -2,7 +2,9 @@ node_modules/
 dist/
 client/node_modules/
 client/dist/
-*.db
+*.db-wal
+*.db-shm
+data/*.db
 .env
 data/inbox/*.xlsx
 data/processed/
