@@ -913,7 +913,37 @@ export function upsertABCDaily(data: {
 // ── Article name aliases (unify items that are the same product) ──
 // Map: original name → canonical name
 const ARTICLE_ALIASES: Record<string, string> = {
+  // Sides / Breads
   'Cheese Garlic Bread': 'Cheesy Garlic Bread',
+
+  // Pizzas
+  'Our Spinach Pizza': 'Pizza Our Spinach Pizza',
+
+  // Molhos (capitalização + abreviatura)
+  'molho chimichurri': 'Molho Chimichurri',
+  'extra m. tomate': 'Extra Molho de Tomate',
+  'extra caramelo salgado': 'Extra Caramelo Salgado',
+  'Extra Caramelo': 'Extra Caramelo Salgado',
+
+  // Extras (minúscula → maiúscula canónica)
+  'extra anchovas': 'Extra Anchovas',
+  'extra bacon': 'Extra Bacon',
+  'extra burrata': 'Extra Burrata',
+  'extra cebola caramelizada': 'Extra Cebola Caramelizada',
+  'extra cogumelos': 'Extra Cogumelos Assados',
+  'extra guanciale': 'Extra Guanciale',
+  'extra manjericão': 'Extra Manjericão',
+  'extra mozzarella': 'Extra Mozzarella',
+  'extra pepperoni': 'Extra Pepperoni',
+
+  // Vinhos (So → Só)
+  'So Avesso Copo': 'Só Avesso Copo',
+  'So Avesso Garrafa': 'Só Avesso Garrafa',
+  'Vinho So Avesso': 'Vinho Só Avesso',
+
+  // Bebidas (nome curto → nome completo)
+  'Bouche Earlybird': 'Kombucha Bouche Earlybird',
+  'Bouche Lemondrop': 'Kombucha Bouche Lemondrop',
 };
 
 // SQL CASE expression that normalizes article_name using aliases
