@@ -121,7 +121,7 @@ export function InstrucoesPage() {
               >
                 ZSbmsPRO
               </a>{' '}
-              e retirar os seguintes relatórios
+              para retirar os relatórios mencionados abaixo
             </li>
             {commonRules.map((rule) => (
               <li key={rule} className="flex items-center gap-2 text-sm text-foreground">
