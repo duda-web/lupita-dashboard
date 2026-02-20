@@ -30,11 +30,11 @@ export function LoginForm() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-sm"
+        className="w-full max-w-md"
       >
-        <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xl">
-          <div className="flex flex-col items-center mb-6">
-            <LupitaLogo className="h-20 sm:h-24 w-auto object-contain mb-2" />
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-xl">
+          <div className="flex flex-col items-center mb-8">
+            <LupitaLogo className="h-28 w-auto object-contain mb-2" />
             <p className="text-sm text-muted-foreground">Dashboard Financeiro</p>
           </div>
 
