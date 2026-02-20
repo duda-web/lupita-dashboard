@@ -8,22 +8,22 @@ const steps = [
   {
     title: 'Vendas Completo',
     path: 'Relatórios > Vendas > Apuramentos > Completo',
-    periods: ['Ano Completo Anterior', 'Este Ano'],
+    periods: ['Ano Anterior', 'Este Ano'],
   },
   {
     title: 'Zonas (Canais de Venda)',
     path: 'Relatórios > Vendas > Apuramentos > Zonas',
-    periods: ['Ano Completo Anterior', 'Este Ano'],
+    periods: ['Ano Anterior', 'Este Ano'],
   },
   {
     title: 'Artigos',
     path: 'Relatórios > Vendas > Apuramentos > Artigos',
-    periods: ['Ano Completo Anterior', 'Este Ano'],
+    periods: ['Ano Anterior', 'Este Ano'],
   },
   {
     title: 'Análise ABC',
     path: 'Relatórios > Vendas > Rankings > Análise ABC Vendas',
-    periods: ['Ano Completo Anterior', 'Este Ano'],
+    periods: ['Ano Anterior', 'Este Ano'],
   },
 ];
 
