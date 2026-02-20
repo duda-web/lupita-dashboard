@@ -54,6 +54,20 @@ export function InstrucoesPage() {
     });
   }, []);
 
+  const checkAll = useCallback(() => {
+    const next: Record<string, boolean> = {};
+    steps.forEach((step, i) => {
+      step.periods.forEach((p) => { next[`${i}-${p}`] = true; });
+    });
+    setChecked(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  }, []);
+
+  const uncheckAll = useCallback(() => {
+    setChecked({});
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({}));
+  }, []);
+
   return (
     <Layout>
       <motion.div
@@ -111,7 +125,23 @@ export function InstrucoesPage() {
 
         {/* Input Dados */}
         <div className="mb-4">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">Input Dados</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">Input Dados</h2>
+            <div className="flex gap-2">
+              <button
+                onClick={checkAll}
+                className="text-xs px-3 py-1.5 rounded-lg border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+              >
+                Marcar Tudo
+              </button>
+              <button
+                onClick={uncheckAll}
+                className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-accent transition-colors"
+              >
+                Desmarcar Tudo
+              </button>
+            </div>
+          </div>
           <div className="space-y-4">
             {steps.map((step, i) => {
               const allChecked = step.periods.every((p) => checked[`${i}-${p}`]);
