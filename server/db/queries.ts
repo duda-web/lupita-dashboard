@@ -945,10 +945,34 @@ const ARTICLE_ALIASES: Record<string, string> = {
   // Sobremesas
   'Tarte de queijo': 'Cheesecake',
 
-  // Vinhos (So → Só)
+  // Vinhos: "Vinho X" → "X Garrafa" + So → Só
   'So Avesso Copo': 'Só Avesso Copo',
   'So Avesso Garrafa': 'Só Avesso Garrafa',
-  'Vinho So Avesso': 'Vinho Só Avesso',
+  'Vinho Ada Pet-Nat': 'Ada Pet-Nat Garrafa',
+  'Vinho Antonio Madeira Branco': 'Antonio Madeira Branco Garrafa',
+  'Vinho Black Venus': 'Black Venus Garrafa',
+  'Vinho Carte Blanche': 'Carte Blanche Garrafa',
+  'Vinho Chinado Palhete': 'Chinado Garrafa',
+  'Vinho Colar': 'Domino Colar Garrafa',
+  'Vinho Drink me Nat Cool': 'Drink me Nat Cool Garrafa',
+  "Vinho La Part de l'Été": "La Part de l'Été Garrafa",
+  'Vinho La Retahíla': 'La Retahíla Garrafa',
+  'Vinho Landcraf': 'Landcraf Garrafa',
+  'Vinho Langhe Bianco': 'Langhe Bianco Garrafa',
+  'Vinho Meio Rural': 'Meio Rural Garrafa',
+  'Vinho Mencia': 'Mencia Garrafa',
+  'Vinho Mur X fizel': 'Mur X Fizel Red Garrafa',
+  'Vinho NatCool Bairrada': 'NatCool Bairrada Garrafa',
+  'Vinho NatCool Rose': 'NatCool Rose Garrafa',
+  'Vinho Passo de Gigante': 'Passo de Gigante Garrafa',
+  'Vinho Riesling Fass 6 Senior': 'Riesling Fass 6 Senior Garrafa',
+  'Vinho Rufia Branco': 'Rufia Branco Garrafa',
+  'Vinho Sin Blanca': 'Sin Blanca Garrafa',
+  'Vinho So Avesso': 'Só Avesso Garrafa',
+  'Vinho Terras de São Vicente': 'Terra de S. Vicente Garrafa',
+  'Vinho Vila Vivet': 'Vila Vivet Garrafa',
+  'Vinho Zulmira': 'Zulmira Garrafa',
+  'Vinho Às de Mirabrás': 'Às de Mirabrás Garrafa',
 
   // Bebidas
   'Bouche Earlybird': 'Kombucha Bouche Earlybird',
