@@ -67,7 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           }
         >
           <BookOpen className="h-4 w-4" />
-          Instruções
+          Informações
         </NavLink>
       </div>
 

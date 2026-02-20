@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import { BookOpen, CheckSquare } from 'lucide-react';
+import { CheckSquare, Info } from 'lucide-react';
 import { Layout } from '@/components/dashboard/Layout';
+import { APP_VERSION, APP_VERSION_DATE } from '@/lib/version';
 
 const steps = [
   {
@@ -47,29 +48,29 @@ export function InstrucoesPage() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-lg bg-lupita-amber/10">
-            <BookOpen className="h-5 w-5 text-lupita-amber" />
+            <Info className="h-5 w-5 text-lupita-amber" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Instruções</h1>
+            <h1 className="text-xl font-bold text-foreground">Informações</h1>
             <p className="text-sm text-muted-foreground">Guia de importação semanal de dados</p>
           </div>
         </div>
 
-        {/* Conceito */}
+        {/* Info cards */}
         <div className="rounded-xl border border-border bg-card p-5 mb-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Conceito</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="rounded-lg bg-muted/50 p-3">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Criação</p>
-              <p className="text-sm font-medium text-foreground">Claude Code</p>
-            </div>
-            <div className="rounded-lg bg-muted/50 p-3">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Frequência</p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Frequência Importação</p>
               <p className="text-sm font-medium text-foreground">Todas as segundas-feiras</p>
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Responsável</p>
               <p className="text-sm font-medium text-foreground">Bruna (Financeiro)</p>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-3">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Versão</p>
+              <p className="text-sm font-medium text-foreground">v{APP_VERSION}</p>
+              <p className="text-[10px] text-muted-foreground">{APP_VERSION_DATE}</p>
             </div>
           </div>
         </div>
