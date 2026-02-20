@@ -8,6 +8,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { UploadPage } from '@/pages/UploadPage';
 import { ArtigosPage } from '@/pages/ArtigosPage';
 import { ABCPage } from '@/pages/ABCPage';
+import { InstrucoesPage } from '@/pages/InstrucoesPage';
 
 export default function App() {
   return (
@@ -44,6 +45,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ABCPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/instrucoes"
+            element={
+              <ProtectedRoute>
+                <InstrucoesPage />
               </ProtectedRoute>
             }
           />

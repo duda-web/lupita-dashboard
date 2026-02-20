@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { LayoutDashboard, Upload, LogOut, Menu, X, Sun, Moon, ShoppingBag, BarChart3, BookOpen, ChevronDown, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Upload, LogOut, Menu, X, Sun, Moon, ShoppingBag, BarChart3, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LupitaLogo } from './LupitaLogo';
 
@@ -10,8 +10,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
-  const [instructionsOpen, setInstructionsOpen] = useState(false);
-
   const toggleTheme = () => {
     document.documentElement.classList.toggle('dark');
     setIsDark(!isDark);
@@ -57,82 +55,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Instruções */}
       <div className="px-3 pb-2 border-t border-border pt-3">
-        <button
-          onClick={() => setInstructionsOpen(!instructionsOpen)}
-          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        <NavLink
+          to="/instrucoes"
+          onClick={() => setSidebarOpen(false)}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-lupita-amber/10 text-lupita-amber'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            }`
+          }
         >
           <BookOpen className="h-4 w-4" />
-          <span className="flex-1 text-left">Instruções</span>
-          {instructionsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        </button>
-        <AnimatePresence>
-          {instructionsOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-1 px-2 pb-2 max-h-[50vh] overflow-y-auto text-[11px] text-muted-foreground space-y-3 scrollbar-thin">
-                <div>
-                  <p className="font-semibold text-foreground text-xs mb-1">Conceito</p>
-                  <ul className="space-y-0.5 list-disc list-inside">
-                    <li>Criação: CLAUDE CODE</li>
-                    <li>Dados: Importar todas as segundas-feiras</li>
-                    <li>Responsável: Bruna (Financeiro)</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <p className="font-semibold text-foreground text-xs mb-1">Input Dados</p>
-
-                  <div className="space-y-2">
-                    <div>
-                      <p className="font-medium text-foreground/80 mb-0.5">1. Vendas Completo</p>
-                      <p className="italic">Relatórios &gt; Vendas &gt; Apuramentos &gt; Completo</p>
-                      <ul className="mt-0.5 space-y-0.5 ml-3">
-                        <li>☐ Ano Completo Anterior</li>
-                        <li>☐ Este Ano</li>
-                      </ul>
-                      <p className="mt-0.5 ml-3 text-[10px]">Agrupar p/ Data + Loja · Retirar LUPITA SEDE · <span className="font-semibold">Todas as colunas selecionadas</span></p>
-                    </div>
-
-                    <div>
-                      <p className="font-medium text-foreground/80 mb-0.5">2. Zonas (Canais de Venda)</p>
-                      <p className="italic">Relatórios &gt; Vendas &gt; Apuramentos &gt; Zonas</p>
-                      <ul className="mt-0.5 space-y-0.5 ml-3">
-                        <li>☐ Ano Completo Anterior</li>
-                        <li>☐ Este Ano</li>
-                      </ul>
-                      <p className="mt-0.5 ml-3 text-[10px]">Agrupar p/ Data + Loja · Retirar LUPITA SEDE · <span className="font-semibold">Todas as colunas selecionadas</span></p>
-                    </div>
-
-                    <div>
-                      <p className="font-medium text-foreground/80 mb-0.5">3. Artigos</p>
-                      <p className="italic">Relatórios &gt; Vendas &gt; Apuramentos &gt; Artigos</p>
-                      <ul className="mt-0.5 space-y-0.5 ml-3">
-                        <li>☐ Ano Completo Anterior</li>
-                        <li>☐ Este Ano</li>
-                      </ul>
-                      <p className="mt-0.5 ml-3 text-[10px]">Agrupar p/ Data + Loja · Retirar LUPITA SEDE · <span className="font-semibold">Todas as colunas selecionadas</span></p>
-                    </div>
-
-                    <div>
-                      <p className="font-medium text-foreground/80 mb-0.5">4. Análise ABC</p>
-                      <p className="italic">Relatórios &gt; Vendas &gt; Rankings &gt; Análise ABC Vendas</p>
-                      <ul className="mt-0.5 space-y-0.5 ml-3">
-                        <li>☐ Ano Completo Anterior</li>
-                        <li>☐ Este Ano</li>
-                      </ul>
-                      <p className="mt-0.5 ml-3 text-[10px]">Agrupar p/ Data + Loja · Retirar LUPITA SEDE · <span className="font-semibold">Todas as colunas selecionadas (exceto: Cód. Externo)</span></p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          Instruções
+        </NavLink>
       </div>
 
       <div className="p-4 border-t border-border">
