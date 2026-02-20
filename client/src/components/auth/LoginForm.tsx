@@ -34,7 +34,7 @@ export function LoginForm() {
       >
         <div className="rounded-2xl border border-border bg-card p-8 shadow-xl">
           <div className="flex flex-col items-center mb-8">
-            <LupitaLogo className="h-28 w-auto object-contain mb-2" />
+            <LupitaLogo className="h-28 max-w-[80%] w-auto object-contain mb-2" />
             <p className="text-sm text-muted-foreground">Dashboard Financeiro</p>
           </div>
 
