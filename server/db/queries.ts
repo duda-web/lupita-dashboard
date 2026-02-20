@@ -500,10 +500,11 @@ export function getTopArticles(params: {
   const args: any[] = [params.dateTo, params.dateFrom];
 
   // Always unify by article_name (merge same name even within a channel)
+  const nameExpr = articleNameExpr();
   let query = `
     SELECT
       GROUP_CONCAT(DISTINCT article_code) as article_code,
-      article_name,
+      ${nameExpr} as article_name,
       GROUP_CONCAT(DISTINCT family) as family,
       GROUP_CONCAT(DISTINCT subfamily) as subfamily,
       COALESCE(SUM(qty_sold), 0) as total_qty,
@@ -517,7 +518,7 @@ export function getTopArticles(params: {
     args.push(params.storeId);
   }
   query = addChannelFilter(query, args, channel);
-  query += ` GROUP BY article_name ORDER BY total_revenue DESC LIMIT ?`;
+  query += ` GROUP BY ${nameExpr} ORDER BY total_revenue DESC LIMIT ?`;
   args.push(limit);
 
   return database.prepare(query).all(...args);
@@ -564,10 +565,11 @@ export function getArticleTrend(params: {
   const channel = params.channel || 'all';
 
   // Always unify by article_name
+  const nameExpr = articleNameExpr();
   // First get top articles by name
   const topArgs: any[] = [params.dateTo, params.dateFrom];
   let topQuery = `
-    SELECT article_name as key_val
+    SELECT ${nameExpr} as key_val
     FROM article_sales
     WHERE date_from <= ? AND date_to >= ?
   `;
@@ -576,7 +578,7 @@ export function getArticleTrend(params: {
     topArgs.push(params.storeId);
   }
   topQuery = addChannelFilter(topQuery, topArgs, channel);
-  topQuery += ` GROUP BY article_name ORDER BY SUM(revenue_gross) DESC LIMIT ?`;
+  topQuery += ` GROUP BY ${nameExpr} ORDER BY SUM(revenue_gross) DESC LIMIT ?`;
   topArgs.push(limit);
 
   const topArticles = database.prepare(topQuery).all(...topArgs) as any[];
@@ -591,20 +593,20 @@ export function getArticleTrend(params: {
       strftime('%Y-%m', date_from) as month,
       MIN(date_from) as date_from,
       MAX(date_to) as date_to,
-      article_name as article_code,
-      article_name,
+      ${nameExpr} as article_code,
+      ${nameExpr} as article_name,
       COALESCE(SUM(revenue_gross), 0) as total_revenue,
       COALESCE(SUM(qty_sold), 0) as total_qty
     FROM article_sales
     WHERE date_from <= ? AND date_to >= ?
-      AND article_name IN (${placeholders})
+      AND ${nameExpr} IN (${placeholders})
   `;
   if (params.storeId) {
     trendQuery += ' AND store_id = ?';
     trendArgs.push(params.storeId);
   }
   trendQuery = addChannelFilter(trendQuery, trendArgs, channel);
-  trendQuery += ` GROUP BY month, article_name ORDER BY month ASC, total_revenue DESC`;
+  trendQuery += ` GROUP BY month, ${nameExpr} ORDER BY month ASC, total_revenue DESC`;
 
   return database.prepare(trendQuery).all(...trendArgs);
 }
@@ -621,14 +623,15 @@ export function getArticlesByStore(params: {
   const channel = params.channel || 'all';
 
   // First get overall top articles
+  const nameExpr = articleNameExpr();
   const topArgs: any[] = [params.dateTo, params.dateFrom];
   let topQuery = `
-    SELECT article_name
+    SELECT ${nameExpr} as article_name
     FROM article_sales
     WHERE date_from <= ? AND date_to >= ?
   `;
   topQuery = addChannelFilter(topQuery, topArgs, channel);
-  topQuery += ` GROUP BY article_name ORDER BY SUM(revenue_gross) DESC LIMIT ?`;
+  topQuery += ` GROUP BY ${nameExpr} ORDER BY SUM(revenue_gross) DESC LIMIT ?`;
   topArgs.push(limit);
 
   const topArticles = database.prepare(topQuery).all(...topArgs) as any[];
@@ -641,16 +644,16 @@ export function getArticlesByStore(params: {
   let query = `
     SELECT
       store_id,
-      article_name,
+      ${nameExpr} as article_name,
       COALESCE(SUM(qty_sold), 0) as total_qty,
       COALESCE(SUM(revenue_net), 0) as total_net,
       COALESCE(SUM(revenue_gross), 0) as total_revenue
     FROM article_sales
     WHERE date_from <= ? AND date_to >= ?
-      AND article_name IN (${placeholders})
+      AND ${nameExpr} IN (${placeholders})
   `;
   query = addChannelFilter(query, args, channel);
-  query += ` GROUP BY store_id, article_name ORDER BY article_name ASC, store_id ASC`;
+  query += ` GROUP BY store_id, ${nameExpr} ORDER BY ${nameExpr} ASC, store_id ASC`;
 
   return database.prepare(query).all(...args);
 }
@@ -907,6 +910,24 @@ export function upsertABCDaily(data: {
   }
 }
 
+// ── Article name aliases (unify items that are the same product) ──
+// Map: original name → canonical name
+const ARTICLE_ALIASES: Record<string, string> = {
+  'Cheese Garlic Bread': 'Cheesy Garlic Bread',
+};
+
+// SQL CASE expression that normalizes article_name using aliases
+function articleNameExpr(col = 'article_name'): string {
+  const entries = Object.entries(ARTICLE_ALIASES);
+  if (entries.length === 0) return col;
+  let expr = 'CASE';
+  for (const [from, to] of entries) {
+    expr += ` WHEN ${col} = '${from.replace(/'/g, "''")}' THEN '${to.replace(/'/g, "''")}'`;
+  }
+  expr += ` ELSE ${col} END`;
+  return expr;
+}
+
 // ABC class from cumulative percentage (70/90 thresholds)
 function abcFromCumulative(pct: number): string {
   if (pct <= 0.70) return 'A';
@@ -923,9 +944,10 @@ export function getABCRanking(params: {
   const database = getDb();
   const args: any[] = [params.dateFrom, params.dateTo];
 
+  const nameExpr = articleNameExpr();
   let query = `
     SELECT
-      article_name,
+      ${nameExpr} as article_name,
       SUM(qty) as total_qty,
       SUM(value_gross) as total_value,
       COUNT(DISTINCT article_code) as code_count,
@@ -938,7 +960,7 @@ export function getABCRanking(params: {
     query += ' AND store_id = ?';
     args.push(params.storeId);
   }
-  query += ' GROUP BY article_name ORDER BY total_value DESC';
+  query += ` GROUP BY ${nameExpr} ORDER BY total_value DESC`;
 
   const rows = database.prepare(query).all(...args) as any[];
 
@@ -1064,10 +1086,12 @@ export function getABCEvolution(params: {
 }) {
   const database = getDb();
 
+  const nameExpr = articleNameExpr();
+
   // First get top 10 articles by total value
   const rankingArgs: any[] = [params.dateFrom, params.dateTo];
   let rankingQuery = `
-    SELECT article_name
+    SELECT ${nameExpr} as article_name
     FROM abc_daily
     WHERE date >= ? AND date <= ? AND is_excluded = 0
   `;
@@ -1075,7 +1099,7 @@ export function getABCEvolution(params: {
     rankingQuery += ' AND store_id = ?';
     rankingArgs.push(params.storeId);
   }
-  rankingQuery += ' GROUP BY article_name ORDER BY SUM(value_gross) DESC LIMIT 10';
+  rankingQuery += ` GROUP BY ${nameExpr} ORDER BY SUM(value_gross) DESC LIMIT 10`;
 
   const topArticles = database.prepare(rankingQuery).all(...rankingArgs) as any[];
   const topNames = topArticles.map((a: any) => a.article_name);
@@ -1088,18 +1112,18 @@ export function getABCEvolution(params: {
     SELECT
       strftime('%Y-W%W', date) as week,
       MIN(date) as week_start,
-      article_name,
+      ${nameExpr} as article_name,
       AVG(ranking) as avg_ranking,
       SUM(value_gross) as week_value
     FROM abc_daily
     WHERE date >= ? AND date <= ? AND is_excluded = 0
-      AND article_name IN (${placeholders})
+      AND ${nameExpr} IN (${placeholders})
   `;
   if (params.storeId) {
     query += ' AND store_id = ?';
     args.push(params.storeId);
   }
-  query += ' GROUP BY week, article_name ORDER BY week ASC';
+  query += ` GROUP BY week, ${nameExpr} ORDER BY week ASC`;
 
   return database.prepare(query).all(...args);
 }
@@ -1111,13 +1135,14 @@ export function getABCStoreComparison(params: {
 }) {
   const database = getDb();
   const args: any[] = [params.dateFrom, params.dateTo];
+  const nameExpr = articleNameExpr();
 
   // Get top 15 articles overall
   const topQuery = `
-    SELECT article_name
+    SELECT ${nameExpr} as article_name
     FROM abc_daily
     WHERE date >= ? AND date <= ? AND is_excluded = 0
-    GROUP BY article_name
+    GROUP BY ${nameExpr}
     ORDER BY SUM(value_gross) DESC
     LIMIT 15
   `;
@@ -1130,14 +1155,14 @@ export function getABCStoreComparison(params: {
   const query = `
     SELECT
       store_id,
-      article_name,
+      ${nameExpr} as article_name,
       SUM(qty) as total_qty,
       SUM(value_gross) as total_value
     FROM abc_daily
     WHERE date >= ? AND date <= ? AND is_excluded = 0
-      AND article_name IN (${placeholders})
-    GROUP BY store_id, article_name
-    ORDER BY article_name ASC, store_id ASC
+      AND ${nameExpr} IN (${placeholders})
+    GROUP BY store_id, ${nameExpr}
+    ORDER BY ${nameExpr} ASC, store_id ASC
   `;
 
   return database.prepare(query).all(...breakdownArgs);
