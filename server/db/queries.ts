@@ -919,31 +919,44 @@ const ARTICLE_ALIASES: Record<string, string> = {
   // Pizzas
   'Our Spinach Pizza': 'Pizza Our Spinach Pizza',
 
-  // Molhos (capitalização + abreviatura)
+  // Molhos
   'molho chimichurri': 'Molho Chimichurri',
+  'molho ranch': 'Molho Ranch Fumado',
+  'molho cheese': 'Molho Cheese & Garlic',
+  'molho tomate DIP': 'Molho Marinara',
   'extra m. tomate': 'Extra Molho de Tomate',
   'extra caramelo salgado': 'Extra Caramelo Salgado',
   'Extra Caramelo': 'Extra Caramelo Salgado',
 
   // Extras (minúscula → maiúscula canónica)
+  'extra alho': 'Extra Alho Laminado',
   'extra anchovas': 'Extra Anchovas',
+  'extra ananás': 'Extra Ananás',
   'extra bacon': 'Extra Bacon',
   'extra burrata': 'Extra Burrata',
   'extra cebola caramelizada': 'Extra Cebola Caramelizada',
   'extra cogumelos': 'Extra Cogumelos Assados',
   'extra guanciale': 'Extra Guanciale',
+  'extra malagueta': 'Extra Picles Malagueta',
   'extra manjericão': 'Extra Manjericão',
   'extra mozzarella': 'Extra Mozzarella',
   'extra pepperoni': 'Extra Pepperoni',
+
+  // Sobremesas
+  'Tarte de queijo': 'Cheesecake',
 
   // Vinhos (So → Só)
   'So Avesso Copo': 'Só Avesso Copo',
   'So Avesso Garrafa': 'Só Avesso Garrafa',
   'Vinho So Avesso': 'Vinho Só Avesso',
 
-  // Bebidas (nome curto → nome completo)
+  // Bebidas
   'Bouche Earlybird': 'Kombucha Bouche Earlybird',
   'Bouche Lemondrop': 'Kombucha Bouche Lemondrop',
+  'Coca-cola 0.33L': 'Coca-Cola',
+  'Coca-cola Zero 0.33L': 'Coca-Cola Zero',
+  'Ummi Hibiscus': 'Ümmi Hibiscus & Berry',
+  'Ummi Mango': 'Ümmi Mango Turmeric',
 };
 
 // SQL CASE expression that normalizes article_name using aliases
