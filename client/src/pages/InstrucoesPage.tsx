@@ -110,6 +110,19 @@ export function InstrucoesPage() {
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 mb-6 shadow-sm">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Regras Comuns a Todos os Relatórios</h2>
           <ul className="space-y-2">
+            <li className="flex items-center gap-2 text-sm text-foreground">
+              <CheckSquare className="h-4 w-4 text-lupita-amber flex-shrink-0" />
+              Acessar o{' '}
+              <a
+                href="https://515449741.zsbmspro.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-lupita-amber font-semibold underline underline-offset-2 hover:text-lupita-amber/80 transition-colors"
+              >
+                ZSbmsPRO
+              </a>{' '}
+              e retirar os seguintes relatórios
+            </li>
             {commonRules.map((rule) => (
               <li key={rule} className="flex items-center gap-2 text-sm text-foreground">
                 <CheckSquare className="h-4 w-4 text-lupita-amber flex-shrink-0" />
