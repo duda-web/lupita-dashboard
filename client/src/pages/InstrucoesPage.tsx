@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CheckSquare, Info } from 'lucide-react';
 import { Layout } from '@/components/dashboard/Layout';
@@ -32,7 +33,27 @@ const commonRules = [
   'Retirar LUPITA SEDE em Lojas',
 ];
 
+const STORAGE_KEY = 'lupita-instrucoes-checked';
+
+function loadChecked(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
 export function InstrucoesPage() {
+  const [checked, setChecked] = useState<Record<string, boolean>>(loadChecked);
+
+  const toggle = useCallback((key: string) => {
+    setChecked((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   return (
     <Layout>
       <motion.div
@@ -92,36 +113,65 @@ export function InstrucoesPage() {
         <div className="mb-4">
           <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">Input Dados</h2>
           <div className="space-y-4">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.title}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
-                className="rounded-xl border border-border bg-card p-5 shadow-sm"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="flex items-center justify-center h-7 w-7 rounded-full bg-lupita-amber/10 text-lupita-amber text-sm font-bold flex-shrink-0">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-foreground mb-1">{step.title}</h3>
-                    <p className="text-xs text-muted-foreground font-mono bg-muted/50 rounded px-2 py-1 inline-block mb-3">
-                      {step.path}
-                    </p>
+            {steps.map((step, i) => {
+              const allChecked = step.periods.every((p) => checked[`${i}-${p}`]);
+              return (
+                <motion.div
+                  key={step.title}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  className={`rounded-xl border p-5 shadow-sm transition-colors ${
+                    allChecked
+                      ? 'border-emerald-500/30 bg-emerald-500/5'
+                      : 'border-border bg-card'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className={`flex items-center justify-center h-7 w-7 rounded-full text-sm font-bold flex-shrink-0 transition-colors ${
+                      allChecked
+                        ? 'bg-emerald-500/10 text-emerald-500'
+                        : 'bg-lupita-amber/10 text-lupita-amber'
+                    }`}>
+                      {allChecked ? '✓' : i + 1}
+                    </span>
+                    <div className="flex-1">
+                      <h3 className={`text-sm font-semibold mb-1 transition-colors ${
+                        allChecked ? 'text-muted-foreground line-through' : 'text-foreground'
+                      }`}>{step.title}</h3>
+                      <p className={`text-xs font-mono bg-muted/50 rounded px-2 py-1 inline-block mb-3 transition-colors ${
+                        allChecked ? 'text-muted-foreground/50 line-through' : 'text-muted-foreground'
+                      }`}>
+                        {step.path}
+                      </p>
 
-                    <div className="space-y-2">
-                      {step.periods.map((period) => (
-                        <label key={period} className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                          <input type="checkbox" className="rounded border-border accent-amber-500" />
-                          {period}
-                        </label>
-                      ))}
+                      <div className="space-y-2">
+                        {step.periods.map((period) => {
+                          const key = `${i}-${period}`;
+                          const isChecked = !!checked[key];
+                          return (
+                            <label key={period} className="flex items-center gap-2 text-sm cursor-pointer select-none" onClick={() => toggle(key)}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggle(key)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="rounded border-border accent-amber-500"
+                              />
+                              <span className={`transition-colors ${
+                                isChecked ? 'text-muted-foreground line-through' : 'text-foreground'
+                              }`}>
+                                {period}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </motion.div>
