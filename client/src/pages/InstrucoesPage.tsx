@@ -8,25 +8,21 @@ const steps = [
     title: 'Vendas Completo',
     path: 'Relatórios > Vendas > Apuramentos > Completo',
     periods: ['Ano Completo Anterior', 'Este Ano'],
-    note: 'Todas as colunas selecionadas',
   },
   {
     title: 'Zonas (Canais de Venda)',
     path: 'Relatórios > Vendas > Apuramentos > Zonas',
     periods: ['Ano Completo Anterior', 'Este Ano'],
-    note: 'Todas as colunas selecionadas',
   },
   {
     title: 'Artigos',
     path: 'Relatórios > Vendas > Apuramentos > Artigos',
     periods: ['Ano Completo Anterior', 'Este Ano'],
-    note: 'Todas as colunas selecionadas',
   },
   {
     title: 'Análise ABC',
     path: 'Relatórios > Vendas > Rankings > Análise ABC Vendas',
     periods: ['Ano Completo Anterior', 'Este Ano'],
-    note: 'Todas as colunas selecionadas (exceto: Cód. Externo)',
   },
 ];
 
@@ -87,7 +83,7 @@ export function InstrucoesPage() {
             ))}
             <li className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <CheckSquare className="h-4 w-4 text-lupita-amber flex-shrink-0" />
-              Certificar de que todas as colunas estão selecionadas
+              Certificar de que todas as colunas estão selecionadas (exceto Cód. Externo na ABC)
             </li>
           </ul>
         </div>
@@ -122,12 +118,6 @@ export function InstrucoesPage() {
                         </label>
                       ))}
                     </div>
-
-                    {step.note && (
-                      <p className="mt-3 text-xs text-muted-foreground border-l-2 border-lupita-amber/50 pl-2">
-                        <span className="font-semibold">{step.note}</span>
-                      </p>
-                    )}
                   </div>
                 </div>
               </motion.div>
