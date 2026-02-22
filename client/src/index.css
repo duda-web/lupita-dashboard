@@ -59,6 +59,11 @@
   }
 }
 
+/* Sticky header background with subtle transparency */
+.sticky-header-bg {
+  background-color: hsl(var(--background) / 0.98);
+}
+
 /* react-day-picker overrides for dark mode and Lupita theme */
 .lupita-calendar {
   --rdp-accent-color: hsl(var(--primary));

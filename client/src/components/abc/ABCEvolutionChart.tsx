@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { TrendingUp } from 'lucide-react';
 import type { ABCEvolutionPoint } from '@/types';
 import { ARTICLE_TREND_COLORS } from '@/lib/constants';
 
@@ -36,20 +37,23 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export function ABCEvolutionChart({ data }: Props) {
-  const { chartData, articles } = useMemo(() => {
-    if (data.length === 0) return { chartData: [], articles: [] };
+  const { chartData, articles, maxRanking } = useMemo(() => {
+    if (data.length === 0) return { chartData: [], articles: [], maxRanking: 10 };
 
     // Get unique article names and weeks
     const articleSet = new Set(data.map((d) => d.article_name));
     const articles = Array.from(articleSet);
     const weekMap = new Map<string, any>();
 
+    // Track max ranking across all data points
+    let maxR = 10;
     for (const d of data) {
       if (!weekMap.has(d.week)) {
         weekMap.set(d.week, { week: d.week, week_start: d.week_start });
       }
       const row = weekMap.get(d.week);
       row[d.article_name] = d.avg_ranking;
+      if (d.avg_ranking > maxR) maxR = Math.ceil(d.avg_ranking);
     }
 
     const chartData = Array.from(weekMap.values()).sort((a, b) =>
@@ -66,13 +70,21 @@ export function ABCEvolutionChart({ data }: Props) {
       }
     }
 
-    return { chartData, articles };
+    return { chartData, articles, maxRanking: maxR };
   }, [data]);
+
+  // Generate ticks from 1 to maxRanking
+  const yTicks = useMemo(() => {
+    return Array.from({ length: maxRanking }, (_, i) => i + 1);
+  }, [maxRanking]);
 
   if (chartData.length === 0) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Evolução Ranking — Top 10</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">Evolução Ranking — Top 10</h3>
+        </div>
         <p className="text-sm text-muted-foreground text-center py-8">Sem dados de evolução</p>
       </motion.div>
     );
@@ -85,10 +97,12 @@ export function ABCEvolutionChart({ data }: Props) {
       transition={{ delay: 0.35 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">
-        Evolução Ranking — Top 10
-      </h3>
-      <ResponsiveContainer width="100%" height={320}>
+      <div className="flex items-center gap-2 mb-1">
+        <TrendingUp className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Evolução Ranking — Top 10</h3>
+      </div>
+      <p className="text-[10px] text-muted-foreground mb-3">Posição semanal por faturação (€) · #1 = maior faturação · Linhas a subir = artigo a ganhar relevância</p>
+      <ResponsiveContainer width="100%" height={400}>
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
           <XAxis
@@ -97,7 +111,10 @@ export function ABCEvolutionChart({ data }: Props) {
           />
           <YAxis
             reversed
-            domain={[1, 'auto']}
+            domain={[1, maxRanking]}
+            ticks={yTicks}
+            allowDecimals={false}
+            interval={0}
             tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
             label={{ value: 'Posição', angle: -90, position: 'insideLeft', fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
           />

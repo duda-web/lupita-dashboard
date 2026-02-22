@@ -12,6 +12,7 @@ import {
   Cell,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { AreaChart as AreaChartIcon } from 'lucide-react';
 import type { ABCArticle } from '@/types';
 import { ABC_MATRIX_LABELS } from '@/types';
 import { formatCurrency, formatCompactCurrency } from '@/lib/formatters';
@@ -67,7 +68,10 @@ export function ABCParetoChart({ data }: Props) {
   if (data.length === 0) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Curva de Pareto</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <AreaChartIcon className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">Curva de Pareto</h3>
+        </div>
         <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
       </motion.div>
     );
@@ -80,7 +84,11 @@ export function ABCParetoChart({ data }: Props) {
       transition={{ delay: 0.2 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Curva de Pareto — Top 30</h3>
+      <div className="flex items-center gap-2 mb-1">
+        <AreaChartIcon className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Curva de Pareto — Top 30</h3>
+      </div>
+      <p className="text-[10px] text-muted-foreground mb-3">Barras = faturação individual · Linha = % acumulado · Linhas tracejadas marcam limites A (70%) e B (90%)</p>
       <ResponsiveContainer width="100%" height={360}>
         <ComposedChart data={chartData} margin={{ top: 10, right: 40, left: 10, bottom: 60 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />

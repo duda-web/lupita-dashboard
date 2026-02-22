@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import { format as fmtDate } from 'date-fns';
+import { syncPageUpdates } from './pageUpdates';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -36,6 +38,108 @@ export function initDb(): void {
     database.exec("ALTER TABLE abc_daily ADD COLUMN is_excluded BOOLEAN NOT NULL DEFAULT 0");
     database.exec("ALTER TABLE abc_daily ADD COLUMN exclude_reason TEXT");
   }
+
+  // Composite index for ABC channel filtering (article_sales lookup by article_code + store_id + family)
+  database.exec("CREATE INDEX IF NOT EXISTS idx_article_sales_code_store_family ON article_sales(article_code, store_id, family)");
+
+  // Add insights_history table if missing
+  const insightsTbl = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='insights_history'"
+  ).get();
+  if (!insightsTbl) {
+    database.exec(`
+      CREATE TABLE insights_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        period TEXT NOT NULL,
+        date_from TEXT NOT NULL,
+        date_to TEXT NOT NULL,
+        store_id TEXT,
+        channel TEXT DEFAULT 'all',
+        insights TEXT NOT NULL,
+        generated_at TEXT NOT NULL,
+        data_snapshot TEXT
+      );
+      CREATE INDEX idx_insights_history_date ON insights_history(generated_at);
+    `);
+  }
+
+  // Add hourly_sales table if missing
+  const hourlyTbl = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='hourly_sales'"
+  ).get();
+  if (!hourlyTbl) {
+    database.exec(`
+      CREATE TABLE hourly_sales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        zone TEXT NOT NULL,
+        time_slot TEXT NOT NULL,
+        num_tickets INTEGER NOT NULL DEFAULT 0,
+        num_customers INTEGER NOT NULL DEFAULT 0,
+        avg_ticket REAL NOT NULL DEFAULT 0,
+        avg_per_customer REAL NOT NULL DEFAULT 0,
+        total_net REAL NOT NULL DEFAULT 0,
+        total_gross REAL NOT NULL DEFAULT 0,
+        UNIQUE(store_id, date, zone, time_slot)
+      );
+      CREATE INDEX idx_hourly_store_date ON hourly_sales(store_id, date);
+      CREATE INDEX idx_hourly_date_slot ON hourly_sales(date, time_slot);
+    `);
+  }
+
+  // Add page_updates table if missing
+  const pageUpdatesTbl = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='page_updates'"
+  ).get();
+  if (!pageUpdatesTbl) {
+    database.exec(`
+      CREATE TABLE page_updates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        page_path TEXT NOT NULL UNIQUE,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        description TEXT
+      );
+    `);
+  }
+
+  // Add user_page_views table if missing
+  const userPageViewsTbl = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='user_page_views'"
+  ).get();
+  if (!userPageViewsTbl) {
+    database.exec(`
+      CREATE TABLE user_page_views (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        page_path TEXT NOT NULL,
+        viewed_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(user_id, page_path),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+      CREATE INDEX idx_user_page_views_user ON user_page_views(user_id);
+    `);
+  }
+
+  // Sync page updates config to database
+  syncPageUpdates();
+}
+
+/**
+ * Gets the last date with actual sales data (total_gross > 0).
+ * This prevents using "today" when today's data hasn't been imported yet,
+ * which would cause negative deltas (targets counted but no revenue).
+ */
+export function getLastSalesDate(storeId?: string): string {
+  const database = getDb();
+  const storeFilter = storeId ? ' AND store_id = ?' : '';
+  const args = storeId ? [storeId] : [];
+  const row = database.prepare(`
+    SELECT MAX(date) as last_date
+    FROM daily_sales
+    WHERE total_gross > 0${storeFilter}
+  `).get(...args) as any;
+  return row?.last_date || fmtDate(new Date(), 'yyyy-MM-dd');
 }
 
 // Upsert daily sales (idempotent)
@@ -133,13 +237,63 @@ export function getDailySales(params: {
   return database.prepare(query).all(...args);
 }
 
-// Get aggregated KPIs for a period
+// Get aggregated KPIs for a period (with optional channel filter)
 export function getKPIs(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const database = getDb();
+  const channel = params.channel || 'all';
+
+  if (channel !== 'all') {
+    // Revenue from article_sales (channel-filtered), other metrics from daily_sales
+    let revenueQuery = `
+      SELECT COALESCE(SUM(revenue_gross), 0) as total_revenue
+      FROM article_sales
+      WHERE date_from >= ? AND date_to <= ?
+    `;
+    const revenueArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      revenueQuery += ' AND store_id = ?';
+      revenueArgs.push(params.storeId);
+    }
+    revenueQuery = addChannelFilter(revenueQuery, revenueArgs, channel);
+    const revenueRow = database.prepare(revenueQuery).get(...revenueArgs) as any;
+
+    let dsQuery = `
+      SELECT
+        COALESCE(SUM(num_tickets), 0) as total_tickets,
+        COALESCE(SUM(num_customers), 0) as total_customers,
+        COALESCE(SUM(total_net), 0) as total_net,
+        COALESCE(SUM(total_vat), 0) as total_vat,
+        COALESCE(SUM(target_gross), 0) as total_target,
+        COALESCE(SUM(qty_items), 0) as total_items,
+        COUNT(CASE WHEN is_closed = 0 THEN 1 END) as open_days
+      FROM daily_sales
+      WHERE date >= ? AND date <= ?
+    `;
+    const dsArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      dsQuery += ' AND store_id = ?';
+      dsArgs.push(params.storeId);
+    }
+    const dsRow = database.prepare(dsQuery).get(...dsArgs) as any;
+
+    return {
+      total_revenue: revenueRow.total_revenue,
+      total_tickets: dsRow.total_tickets,
+      total_customers: dsRow.total_customers,
+      total_net: dsRow.total_net,
+      total_vat: dsRow.total_vat,
+      total_target: dsRow.total_target,
+      total_items: dsRow.total_items,
+      open_days: dsRow.open_days,
+    };
+  }
+
+  // Default: all channels from daily_sales
   let query = `
     SELECT
       COALESCE(SUM(total_gross), 0) as total_revenue,
@@ -163,12 +317,51 @@ export function getKPIs(params: {
   return database.prepare(query).get(...args) as any;
 }
 
-// Get KPIs grouped by store
+// Get KPIs grouped by store (with optional channel filter)
 export function getKPIsByStore(params: {
   dateFrom: string;
   dateTo: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
-  return getDb().prepare(`
+  const database = getDb();
+  const channel = params.channel || 'all';
+
+  if (channel !== 'all') {
+    // Revenue from article_sales, rest from daily_sales, joined by store
+    let revenueQuery = `
+      SELECT store_id, COALESCE(SUM(revenue_gross), 0) as total_revenue
+      FROM article_sales
+      WHERE date_from >= ? AND date_to <= ?
+    `;
+    const revenueArgs: any[] = [params.dateFrom, params.dateTo];
+    revenueQuery = addChannelFilter(revenueQuery, revenueArgs, channel);
+    revenueQuery += ' GROUP BY store_id';
+    const revenueRows = database.prepare(revenueQuery).all(...revenueArgs) as any[];
+    const revenueMap = new Map(revenueRows.map((r: any) => [r.store_id, r.total_revenue]));
+
+    const dsRows = database.prepare(`
+      SELECT
+        store_id,
+        COALESCE(SUM(num_tickets), 0) as total_tickets,
+        COALESCE(SUM(num_customers), 0) as total_customers,
+        COALESCE(SUM(target_gross), 0) as total_target,
+        COUNT(CASE WHEN is_closed = 0 THEN 1 END) as open_days
+      FROM daily_sales
+      WHERE date >= ? AND date <= ?
+      GROUP BY store_id
+    `).all(params.dateFrom, params.dateTo) as any[];
+
+    return dsRows.map((ds: any) => ({
+      store_id: ds.store_id,
+      total_revenue: revenueMap.get(ds.store_id) || 0,
+      total_tickets: ds.total_tickets,
+      total_customers: ds.total_customers,
+      total_target: ds.total_target,
+      open_days: ds.open_days,
+    }));
+  }
+
+  return database.prepare(`
     SELECT
       store_id,
       COALESCE(SUM(total_gross), 0) as total_revenue,
@@ -182,14 +375,63 @@ export function getKPIsByStore(params: {
   `).all(params.dateFrom, params.dateTo);
 }
 
-// Get weekly aggregated data for charts
+// Get weekly aggregated data for charts (with optional channel filter)
 export function getWeeklyData(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const database = getDb();
-  // ISO week: strftime('%W', date) gives week number
+  const channel = params.channel || 'all';
+
+  if (channel !== 'all') {
+    // Revenue from article_sales by week, joined with daily_sales for tickets/customers/target
+    let revenueQuery = `
+      SELECT
+        strftime('%Y-W%W', date_from) as week,
+        store_id,
+        COALESCE(SUM(revenue_gross), 0) as total_revenue
+      FROM article_sales
+      WHERE date_from >= ? AND date_to <= ?
+    `;
+    const revenueArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      revenueQuery += ' AND store_id = ?';
+      revenueArgs.push(params.storeId);
+    }
+    revenueQuery = addChannelFilter(revenueQuery, revenueArgs, channel);
+    revenueQuery += ' GROUP BY week, store_id';
+    const revenueRows = database.prepare(revenueQuery).all(...revenueArgs) as any[];
+    const revenueMap = new Map(revenueRows.map((r: any) => [`${r.week}|${r.store_id}`, r.total_revenue]));
+
+    let dsQuery = `
+      SELECT
+        strftime('%Y-W%W', date) as week,
+        MIN(date) as week_start,
+        store_id,
+        COALESCE(SUM(num_tickets), 0) as total_tickets,
+        COALESCE(SUM(num_customers), 0) as total_customers,
+        COALESCE(SUM(target_gross), 0) as total_target,
+        COUNT(CASE WHEN is_closed = 0 THEN 1 END) as open_days
+      FROM daily_sales
+      WHERE date >= ? AND date <= ?
+    `;
+    const dsArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      dsQuery += ' AND store_id = ?';
+      dsArgs.push(params.storeId);
+    }
+    dsQuery += ' GROUP BY week, store_id ORDER BY week ASC, store_id ASC';
+    const dsRows = database.prepare(dsQuery).all(...dsArgs) as any[];
+
+    return dsRows.map((ds: any) => ({
+      ...ds,
+      total_revenue: revenueMap.get(`${ds.week}|${ds.store_id}`) || 0,
+    }));
+  }
+
+  // Default: all channels from daily_sales
   let query = `
     SELECT
       strftime('%Y-W%W', date) as week,
@@ -214,12 +456,54 @@ export function getWeeklyData(params: {
   return database.prepare(query).all(...args);
 }
 
-// Get daily data grouped by day of week
+// Get daily data grouped by day of week (with optional channel filter)
 export function getDayOfWeekData(params: {
   dateFrom: string;
   dateTo: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
-  return getDb().prepare(`
+  const database = getDb();
+  const channel = params.channel || 'all';
+
+  if (channel !== 'all') {
+    // Revenue per day from article_sales, then average by day_of_week
+    let revenueQuery = `
+      SELECT date_from as date, store_id, COALESCE(SUM(revenue_gross), 0) as day_revenue
+      FROM article_sales
+      WHERE date_from >= ? AND date_to <= ?
+    `;
+    const revenueArgs: any[] = [params.dateFrom, params.dateTo];
+    revenueQuery = addChannelFilter(revenueQuery, revenueArgs, channel);
+    revenueQuery += ' GROUP BY date_from, store_id';
+
+    // Join with daily_sales for day_of_week name and is_closed flag
+    const query = `
+      SELECT
+        ds.day_of_week,
+        ds.store_id,
+        AVG(CASE WHEN ds.is_closed = 0 THEN ar.day_revenue END) as avg_revenue,
+        AVG(CASE WHEN ds.is_closed = 0 THEN ds.num_tickets END) as avg_tickets,
+        COUNT(CASE WHEN ds.is_closed = 0 THEN 1 END) as days_open
+      FROM daily_sales ds
+      LEFT JOIN (${revenueQuery}) ar ON ar.date = ds.date AND ar.store_id = ds.store_id
+      WHERE ds.date >= ? AND ds.date <= ?
+      GROUP BY ds.day_of_week, ds.store_id
+      ORDER BY
+        CASE ds.day_of_week
+          WHEN 'Segunda' THEN 1
+          WHEN 'Terça' THEN 2
+          WHEN 'Quarta' THEN 3
+          WHEN 'Quinta' THEN 4
+          WHEN 'Sexta' THEN 5
+          WHEN 'Sábado' THEN 6
+          WHEN 'Domingo' THEN 7
+        END,
+        ds.store_id
+    `;
+    return database.prepare(query).all(...revenueArgs, params.dateFrom, params.dateTo);
+  }
+
+  return database.prepare(`
     SELECT
       day_of_week,
       store_id,
@@ -243,13 +527,59 @@ export function getDayOfWeekData(params: {
   `).all(params.dateFrom, params.dateTo);
 }
 
-// Get monthly data for comparison charts
+// Get monthly data for comparison charts (with optional channel filter)
 export function getMonthlyData(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const database = getDb();
+  const channel = params.channel || 'all';
+
+  if (channel !== 'all') {
+    let revenueQuery = `
+      SELECT
+        strftime('%Y-%m', date_from) as month,
+        store_id,
+        COALESCE(SUM(revenue_gross), 0) as total_revenue
+      FROM article_sales
+      WHERE date_from >= ? AND date_to <= ?
+    `;
+    const revenueArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      revenueQuery += ' AND store_id = ?';
+      revenueArgs.push(params.storeId);
+    }
+    revenueQuery = addChannelFilter(revenueQuery, revenueArgs, channel);
+    revenueQuery += ' GROUP BY month, store_id';
+    const revenueRows = database.prepare(revenueQuery).all(...revenueArgs) as any[];
+    const revenueMap = new Map(revenueRows.map((r: any) => [`${r.month}|${r.store_id}`, r.total_revenue]));
+
+    let dsQuery = `
+      SELECT
+        strftime('%Y-%m', date) as month,
+        store_id,
+        COALESCE(SUM(num_tickets), 0) as total_tickets,
+        COALESCE(SUM(num_customers), 0) as total_customers,
+        COALESCE(SUM(target_gross), 0) as total_target
+      FROM daily_sales
+      WHERE date >= ? AND date <= ?
+    `;
+    const dsArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      dsQuery += ' AND store_id = ?';
+      dsArgs.push(params.storeId);
+    }
+    dsQuery += ' GROUP BY month, store_id ORDER BY month ASC';
+    const dsRows = database.prepare(dsQuery).all(...dsArgs) as any[];
+
+    return dsRows.map((ds: any) => ({
+      ...ds,
+      total_revenue: revenueMap.get(`${ds.month}|${ds.store_id}`) || 0,
+    }));
+  }
+
   let query = `
     SELECT
       strftime('%Y-%m', date) as month,
@@ -272,12 +602,53 @@ export function getMonthlyData(params: {
   return database.prepare(query).all(...args);
 }
 
-// Get heatmap data (daily, optionally filtered by store)
+// Get heatmap data (daily, optionally filtered by store and channel)
 export function getHeatmapData(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
+  const database = getDb();
+  const channel = params.channel || 'all';
+
+  if (channel !== 'all') {
+    // Revenue from article_sales per day, joined with daily_sales for day_of_week
+    let revenueQuery = `
+      SELECT date_from as date, COALESCE(SUM(revenue_gross), 0) as total_revenue
+      FROM article_sales
+      WHERE date_from >= ? AND date_to <= ?
+    `;
+    const revenueArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      revenueQuery += ' AND store_id = ?';
+      revenueArgs.push(params.storeId);
+    }
+    revenueQuery = addChannelFilter(revenueQuery, revenueArgs, channel);
+    revenueQuery += ' GROUP BY date_from';
+    const revenueRows = database.prepare(revenueQuery).all(...revenueArgs) as any[];
+    const revenueMap = new Map(revenueRows.map((r: any) => [r.date, r.total_revenue]));
+
+    let dsQuery = `
+      SELECT date, day_of_week
+      FROM daily_sales
+      WHERE date >= ? AND date <= ?
+    `;
+    const dsArgs: any[] = [params.dateFrom, params.dateTo];
+    if (params.storeId) {
+      dsQuery += ' AND store_id = ?';
+      dsArgs.push(params.storeId);
+    }
+    dsQuery += ' GROUP BY date ORDER BY date ASC';
+    const dsRows = database.prepare(dsQuery).all(...dsArgs) as any[];
+
+    return dsRows.map((ds: any) => ({
+      date: ds.date,
+      day_of_week: ds.day_of_week,
+      total_revenue: revenueMap.get(ds.date) || 0,
+    }));
+  }
+
   let query = `
     SELECT
       date,
@@ -294,7 +665,7 @@ export function getHeatmapData(params: {
   }
 
   query += ' GROUP BY date ORDER BY date ASC';
-  return getDb().prepare(query).all(...args);
+  return database.prepare(query).all(...args);
 }
 
 // ─── Zone Sales ───
@@ -995,6 +1366,115 @@ function articleNameExpr(col = 'article_name'): string {
   return expr;
 }
 
+// ── ABC Category filtering ──
+// Maps ABC category to families / subfamilies in article_sales
+type ABCCategory = 'all' | 'pizza' | 'pizza_entradas' | 'extras_molhos' | 'bebidas_alcoolicas' | 'soft_drinks' | 'sobremesas';
+
+const ABC_CATEGORY_MAP: Record<Exclude<ABCCategory, 'all'>, {
+  families: string[];
+  deliverySubfamilies: string[];
+  extraArticleFilter?: string;
+}> = {
+  pizza: {
+    families: ['PIZZAS'],
+    deliverySubfamilies: ['03 | Pizzas'],
+    extraArticleFilter: "(subfamily = '01 | ESPECIAL' AND (article_name LIKE 'Pizza%' OR article_name LIKE 'Our Spinach%'))",
+  },
+  pizza_entradas: {
+    families: ['PIZZAS', 'ENTRADAS'],
+    deliverySubfamilies: ['03 | Pizzas', '02 | Entradas', '01 | ESPECIAL'],
+  },
+  extras_molhos: {
+    families: ['PIZZAS EXTRA'],
+    deliverySubfamilies: ['Extras Pizzas', '04 | Molhos EXTRA'],
+  },
+  bebidas_alcoolicas: {
+    families: ['CERVEJA', 'VINHOS', 'COCKTAILS'],
+    deliverySubfamilies: ['06 | Cerveja MUSA', '07 | Vinhos Naturais'],
+    extraArticleFilter: "article_name LIKE '%mmi%'",
+  },
+  soft_drinks: {
+    families: ['SOFT DRINKS'],
+    deliverySubfamilies: ['05 | Soft Drinks'],
+    extraArticleFilter: "article_name LIKE '%Bouche%'",
+  },
+  sobremesas: {
+    families: ['SOBREMESAS'],
+    deliverySubfamilies: ['09 | Sobremesas', 'Extras Sobremesas'],
+  },
+};
+
+// Lookup article_codes in article_sales that match a given ABC category
+function getArticleCodesForCategory(category: ABCCategory): string[] {
+  if (category === 'all') return [];
+  const map = ABC_CATEGORY_MAP[category];
+  if (!map) return [];
+
+  const database = getDb();
+  const conditions: string[] = [];
+  const args: any[] = [];
+
+  if (map.families.length > 0) {
+    conditions.push(`family IN (${map.families.map(() => '?').join(',')})`);
+    args.push(...map.families);
+  }
+  if (map.deliverySubfamilies.length > 0) {
+    conditions.push(`subfamily IN (${map.deliverySubfamilies.map(() => '?').join(',')})`);
+    args.push(...map.deliverySubfamilies);
+  }
+  if (map.extraArticleFilter) {
+    conditions.push(map.extraArticleFilter);
+  }
+
+  const where = conditions.join(' OR ');
+  const rows = database.prepare(
+    `SELECT DISTINCT article_code FROM article_sales WHERE ${where}`
+  ).all(...args) as any[];
+
+  return rows.map((r: any) => r.article_code);
+}
+
+// Inject AND article_code IN (...) filter into an abc_daily query
+// ABC channel filter: uses JOIN with article_sales to determine delivery vs restaurante
+// abc_daily has no family column, so we cross-reference with article_sales
+function addABCChannelFilter(query: string, args: any[], channel?: 'all' | 'loja' | 'delivery'): string {
+  if (!channel || channel === 'all') return query;
+  if (channel === 'delivery') {
+    const placeholders = DELIVERY_FAMILIES.map(() => '?').join(',');
+    query += ` AND EXISTS (
+      SELECT 1 FROM article_sales s
+      WHERE s.article_code = abc_daily.article_code
+        AND s.store_id = abc_daily.store_id
+        AND s.family IN (${placeholders})
+    )`;
+    args.push(...DELIVERY_FAMILIES);
+  } else if (channel === 'loja') {
+    const placeholders = DELIVERY_FAMILIES.map(() => '?').join(',');
+    query += ` AND EXISTS (
+      SELECT 1 FROM article_sales s
+      WHERE s.article_code = abc_daily.article_code
+        AND s.store_id = abc_daily.store_id
+        AND s.family NOT IN (${placeholders})
+    )`;
+    args.push(...DELIVERY_FAMILIES);
+  }
+  return query;
+}
+
+function addCategoryFilter(query: string, args: any[], category?: string): string {
+  if (!category || category === 'all') return query;
+  const codes = getArticleCodesForCategory(category as ABCCategory);
+  if (codes.length === 0) {
+    // No matching articles → force empty result
+    query += ' AND 1 = 0';
+    return query;
+  }
+  const placeholders = codes.map(() => '?').join(',');
+  query += ` AND article_code IN (${placeholders})`;
+  args.push(...codes);
+  return query;
+}
+
 // ABC class from cumulative percentage (70/90 thresholds)
 function abcFromCumulative(pct: number): string {
   if (pct <= 0.70) return 'A';
@@ -1007,11 +1487,21 @@ export function getABCRanking(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const database = getDb();
   const args: any[] = [params.dateFrom, params.dateTo];
 
   const nameExpr = articleNameExpr();
+
+  // Determine inactive cutoff: 14 days before the END of the filtered period (dateTo)
+  // This ensures that when filtering by past months, the cutoff is relative to that period,
+  // not to the most recent global date (which would mark everything as inactive).
+  const cutoffDate = new Date(params.dateTo + 'T00:00:00');
+  cutoffDate.setDate(cutoffDate.getDate() - 14);
+  const inactiveCutoff = cutoffDate.toISOString().split('T')[0];
+
   let query = `
     SELECT
       ${nameExpr} as article_name,
@@ -1019,7 +1509,8 @@ export function getABCRanking(params: {
       SUM(value_gross) as total_value,
       COUNT(DISTINCT article_code) as code_count,
       GROUP_CONCAT(DISTINCT article_code) as codes,
-      AVG(ranking) as avg_ranking
+      AVG(ranking) as avg_ranking,
+      MAX(date) as last_sale_date
     FROM abc_daily
     WHERE date >= ? AND date <= ? AND is_excluded = 0
   `;
@@ -1027,6 +1518,8 @@ export function getABCRanking(params: {
     query += ' AND store_id = ?';
     args.push(params.storeId);
   }
+  query = addABCChannelFilter(query, args, params.channel);
+  query = addCategoryFilter(query, args, params.category);
   query += ` GROUP BY ${nameExpr} ORDER BY total_value DESC`;
 
   const rows = database.prepare(query).all(...args) as any[];
@@ -1054,10 +1547,23 @@ export function getABCRanking(params: {
     qtyMap.set(r.article_name, { qty_pct: qtyPct, cumulative_qty_pct: cumulativePct, abc_qty: abcFromCumulative(cumulativePct), qty_ranking: idx + 1 });
   });
 
+  // --- Build set of merchandising article codes (exempt from inactive rule) ---
+  const allCodes = rows.flatMap((r: any) => (r.codes || '').split(','));
+  const merchSet = new Set<string>();
+  if (allCodes.length > 0) {
+    const placeholders = allCodes.map(() => '?').join(',');
+    const merchRows = database.prepare(
+      `SELECT DISTINCT article_code FROM article_sales WHERE article_code IN (${placeholders}) AND UPPER(family) = 'MERCHANDISING'`
+    ).all(...allCodes) as any[];
+    merchRows.forEach((m: any) => merchSet.add(m.article_code));
+  }
+
   // --- Combine (primary sort remains by total_value DESC) ---
   return rows.map((r: any, idx: number) => {
     const v = valueMap.get(r.article_name)!;
     const q = qtyMap.get(r.article_name)!;
+    const codes = (r.codes || '').split(',');
+    const isMerch = codes.some((c: string) => merchSet.has(c));
     return {
       ...r,
       ranking: idx + 1,
@@ -1070,6 +1576,8 @@ export function getABCRanking(params: {
       abc_qty: q.abc_qty,
       qty_ranking: q.qty_ranking,
       abc_class: v.abc_value + q.abc_qty,               // e.g. "AA", "BA", "CC"
+      inactive: isMerch ? false : r.last_sale_date < inactiveCutoff,
+      last_sale_date: r.last_sale_date,
     };
   });
 }
@@ -1079,6 +1587,8 @@ export function getABCDistribution(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const ranking = getABCRanking(params);
   const totalRevenue = ranking.reduce((sum: number, r: any) => sum + r.total_value, 0);
@@ -1140,6 +1650,8 @@ export function getABCPareto(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const ranking = getABCRanking(params);
   return ranking.slice(0, 30);
@@ -1150,6 +1662,8 @@ export function getABCEvolution(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const database = getDb();
 
@@ -1166,6 +1680,8 @@ export function getABCEvolution(params: {
     rankingQuery += ' AND store_id = ?';
     rankingArgs.push(params.storeId);
   }
+  rankingQuery = addABCChannelFilter(rankingQuery, rankingArgs, params.channel);
+  rankingQuery = addCategoryFilter(rankingQuery, rankingArgs, params.category);
   rankingQuery += ` GROUP BY ${nameExpr} ORDER BY SUM(value_gross) DESC LIMIT 10`;
 
   const topArticles = database.prepare(rankingQuery).all(...rankingArgs) as any[];
@@ -1190,6 +1706,7 @@ export function getABCEvolution(params: {
     query += ' AND store_id = ?';
     args.push(params.storeId);
   }
+  query = addABCChannelFilter(query, args, params.channel);
   query += ` GROUP BY week, ${nameExpr} ORDER BY week ASC`;
 
   return database.prepare(query).all(...args);
@@ -1199,16 +1716,22 @@ export function getABCEvolution(params: {
 export function getABCStoreComparison(params: {
   dateFrom: string;
   dateTo: string;
+  category?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const database = getDb();
   const args: any[] = [params.dateFrom, params.dateTo];
   const nameExpr = articleNameExpr();
 
   // Get top 15 articles overall
-  const topQuery = `
+  let topQuery = `
     SELECT ${nameExpr} as article_name
     FROM abc_daily
     WHERE date >= ? AND date <= ? AND is_excluded = 0
+  `;
+  topQuery = addABCChannelFilter(topQuery, args, params.channel);
+  topQuery = addCategoryFilter(topQuery, args, params.category);
+  topQuery += `
     GROUP BY ${nameExpr}
     ORDER BY SUM(value_gross) DESC
     LIMIT 15
@@ -1219,7 +1742,7 @@ export function getABCStoreComparison(params: {
 
   const placeholders = topNames.map(() => '?').join(',');
   const breakdownArgs: any[] = [params.dateFrom, params.dateTo, ...topNames];
-  const query = `
+  let query = `
     SELECT
       store_id,
       ${nameExpr} as article_name,
@@ -1228,6 +1751,9 @@ export function getABCStoreComparison(params: {
     FROM abc_daily
     WHERE date >= ? AND date <= ? AND is_excluded = 0
       AND ${nameExpr} IN (${placeholders})
+  `;
+  query = addABCChannelFilter(query, breakdownArgs, params.channel);
+  query += `
     GROUP BY store_id, ${nameExpr}
     ORDER BY ${nameExpr} ASC, store_id ASC
   `;
@@ -1240,6 +1766,8 @@ export function getABCConcentration(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: string;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
   const ranking = getABCRanking(params);
   const total = ranking.reduce((sum: number, r: any) => sum + r.total_value, 0);
@@ -1263,4 +1791,221 @@ export function getABCConcentration(params: {
 // ABC date range available in database
 export function getABCDateRange() {
   return getDb().prepare('SELECT MIN(date) as min_date, MAX(date) as max_date FROM abc_daily WHERE is_excluded = 0').get() as any;
+}
+
+// ─── Insights History ───
+
+export function saveInsight(data: {
+  period: string;
+  date_from: string;
+  date_to: string;
+  store_id: string | null;
+  channel: string;
+  insights: string;
+  generated_at: string;
+  data_snapshot: string;
+}): number {
+  const result = getDb().prepare(`
+    INSERT INTO insights_history (period, date_from, date_to, store_id, channel, insights, generated_at, data_snapshot)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    data.period, data.date_from, data.date_to, data.store_id,
+    data.channel, data.insights, data.generated_at, data.data_snapshot
+  );
+  return result.lastInsertRowid as number;
+}
+
+export function getInsightsHistory(params: {
+  limit?: number;
+  offset?: number;
+}): any[] {
+  const limit = params.limit || 20;
+  const offset = params.offset || 0;
+  return getDb().prepare(`
+    SELECT id, period, date_from, date_to, store_id, channel,
+           insights, generated_at
+    FROM insights_history
+    ORDER BY generated_at DESC
+    LIMIT ? OFFSET ?
+  `).all(limit, offset);
+}
+
+export function getInsightById(id: number): any {
+  return getDb().prepare(`
+    SELECT id, period, date_from, date_to, store_id, channel,
+           insights, generated_at, data_snapshot
+    FROM insights_history
+    WHERE id = ?
+  `).get(id);
+}
+
+// ─── Hourly Sales ───
+
+export function upsertHourlySale(data: {
+  store_id: string;
+  date: string;
+  zone: string;
+  time_slot: string;
+  num_tickets: number;
+  num_customers: number;
+  avg_ticket: number;
+  avg_per_customer: number;
+  total_net: number;
+  total_gross: number;
+}): 'inserted' | 'updated' {
+  const database = getDb();
+  const existing = database
+    .prepare('SELECT id FROM hourly_sales WHERE store_id = ? AND date = ? AND zone = ? AND time_slot = ?')
+    .get(data.store_id, data.date, data.zone, data.time_slot);
+
+  if (existing) {
+    database
+      .prepare(
+        `UPDATE hourly_sales SET
+          num_tickets = ?, num_customers = ?, avg_ticket = ?,
+          avg_per_customer = ?, total_net = ?, total_gross = ?
+         WHERE store_id = ? AND date = ? AND zone = ? AND time_slot = ?`
+      )
+      .run(
+        data.num_tickets, data.num_customers, data.avg_ticket,
+        data.avg_per_customer, data.total_net, data.total_gross,
+        data.store_id, data.date, data.zone, data.time_slot
+      );
+    return 'updated';
+  } else {
+    database
+      .prepare(
+        `INSERT INTO hourly_sales (store_id, date, zone, time_slot, num_tickets, num_customers,
+          avg_ticket, avg_per_customer, total_net, total_gross)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        data.store_id, data.date, data.zone, data.time_slot,
+        data.num_tickets, data.num_customers, data.avg_ticket,
+        data.avg_per_customer, data.total_net, data.total_gross
+      );
+    return 'inserted';
+  }
+}
+
+// Hourly revenue aggregated by time_slot (for bar chart)
+export function getHourlyBySlot(params: {
+  dateFrom: string;
+  dateTo: string;
+  storeId?: string;
+  zone?: string;
+  dayType?: string; // 'all' | 'weekday' | 'weekend'
+}) {
+  const database = getDb();
+  const args: any[] = [params.dateFrom, params.dateTo];
+
+  let query = `
+    SELECT
+      time_slot,
+      COALESCE(SUM(total_gross), 0) as total_revenue,
+      COALESCE(SUM(num_tickets), 0) as num_tickets,
+      COALESCE(SUM(num_customers), 0) as num_customers,
+      COUNT(DISTINCT date) as days,
+      COALESCE(SUM(total_gross), 0) * 1.0 / MAX(1, COUNT(DISTINCT date)) as avg_revenue
+    FROM hourly_sales
+    WHERE date >= ? AND date <= ?
+  `;
+
+  if (params.storeId) {
+    query += ' AND store_id = ?';
+    args.push(params.storeId);
+  }
+  if (params.zone) {
+    query += ' AND zone = ?';
+    args.push(params.zone);
+  }
+  // dayType: weekday = Mon-Fri (strftime %w 1-5), weekend = Sat-Sun (0,6)
+  if (params.dayType === 'weekday') {
+    query += " AND CAST(strftime('%w', date) AS INTEGER) BETWEEN 1 AND 5";
+  } else if (params.dayType === 'weekend') {
+    query += " AND CAST(strftime('%w', date) AS INTEGER) IN (0, 6)";
+  }
+
+  query += ' GROUP BY time_slot ORDER BY time_slot ASC';
+  return database.prepare(query).all(...args);
+}
+
+// Hourly heatmap: avg revenue by time_slot × day_of_week
+export function getHourlyHeatmap(params: {
+  dateFrom: string;
+  dateTo: string;
+  storeId?: string;
+  zone?: string;
+}) {
+  const database = getDb();
+  const args: any[] = [params.dateFrom, params.dateTo];
+
+  // strftime('%w', date) returns 0=Sunday, 1=Monday, ..., 6=Saturday
+  let query = `
+    SELECT
+      time_slot,
+      CAST(strftime('%w', date) AS INTEGER) as day_of_week,
+      COALESCE(SUM(total_gross), 0) * 1.0 / MAX(1, COUNT(DISTINCT date)) as avg_revenue
+    FROM hourly_sales
+    WHERE date >= ? AND date <= ?
+  `;
+
+  if (params.storeId) {
+    query += ' AND store_id = ?';
+    args.push(params.storeId);
+  }
+  if (params.zone) {
+    query += ' AND zone = ?';
+    args.push(params.zone);
+  }
+
+  query += ' GROUP BY time_slot, day_of_week ORDER BY time_slot ASC, day_of_week ASC';
+  return database.prepare(query).all(...args);
+}
+
+// Get distinct zones in hourly_sales for filter options
+export function getHourlyZones(params: {
+  dateFrom: string;
+  dateTo: string;
+  storeId?: string;
+}) {
+  const database = getDb();
+  const args: any[] = [params.dateFrom, params.dateTo];
+  let query = 'SELECT DISTINCT zone FROM hourly_sales WHERE date >= ? AND date <= ?';
+  if (params.storeId) {
+    query += ' AND store_id = ?';
+    args.push(params.storeId);
+  }
+  query += ' ORDER BY zone ASC';
+  return database.prepare(query).all(...args) as { zone: string }[];
+}
+
+// ─── Page Updates / NEW Tags ───
+
+/**
+ * Get pages that have updates the user hasn't seen yet.
+ */
+export function getNewPagesForUser(userId: number): string[] {
+  const database = getDb();
+  const rows = database.prepare(`
+    SELECT pu.page_path
+    FROM page_updates pu
+    LEFT JOIN user_page_views upv
+      ON upv.page_path = pu.page_path AND upv.user_id = ?
+    WHERE upv.viewed_at IS NULL OR upv.viewed_at < pu.updated_at
+  `).all(userId) as { page_path: string }[];
+  return rows.map(r => r.page_path);
+}
+
+/**
+ * Mark a page as viewed by the user (clears the "NEW" badge).
+ */
+export function markPageViewed(userId: number, pagePath: string): void {
+  const database = getDb();
+  database.prepare(`
+    INSERT INTO user_page_views (user_id, page_path, viewed_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(user_id, page_path) DO UPDATE SET
+      viewed_at = datetime('now')
+  `).run(userId, pagePath);
 }

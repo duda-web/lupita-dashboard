@@ -9,9 +9,10 @@ interface Props {
   dateTo: string;
   storeId?: string;
   hasData: boolean;
+  category?: string;
 }
 
-export function ABCInsightsPanel({ dateFrom, dateTo, storeId, hasData }: Props) {
+export function ABCInsightsPanel({ dateFrom, dateTo, storeId, hasData, category }: Props) {
   const [insights, setInsights] = useState<ABCInsightsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export function ABCInsightsPanel({ dateFrom, dateTo, storeId, hasData }: Props) 
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchABCInsights({ dateFrom, dateTo, storeId });
+      const result = await fetchABCInsights({ dateFrom, dateTo, storeId, category: category as any });
       setInsights(result);
       if (result.error === 'api_key_missing') {
         setError(result.message || 'API key não configurada');

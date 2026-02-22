@@ -112,3 +112,57 @@ CREATE INDEX IF NOT EXISTS idx_abc_store_date ON abc_daily(store_id, date);
 CREATE INDEX IF NOT EXISTS idx_abc_article ON abc_daily(article_code);
 CREATE INDEX IF NOT EXISTS idx_abc_class ON abc_daily(abc_class);
 CREATE INDEX IF NOT EXISTS idx_abc_excluded ON abc_daily(is_excluded);
+
+-- Insights IA history
+CREATE TABLE IF NOT EXISTS insights_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  period TEXT NOT NULL,
+  date_from TEXT NOT NULL,
+  date_to TEXT NOT NULL,
+  store_id TEXT,
+  channel TEXT DEFAULT 'all',
+  insights TEXT NOT NULL,
+  generated_at TEXT NOT NULL,
+  data_snapshot TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_insights_history_date ON insights_history(generated_at);
+
+-- Hourly sales (30-min granularity per store, zone, date, time_slot)
+CREATE TABLE IF NOT EXISTS hourly_sales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  store_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  zone TEXT NOT NULL,
+  time_slot TEXT NOT NULL,
+  num_tickets INTEGER NOT NULL DEFAULT 0,
+  num_customers INTEGER NOT NULL DEFAULT 0,
+  avg_ticket REAL NOT NULL DEFAULT 0,
+  avg_per_customer REAL NOT NULL DEFAULT 0,
+  total_net REAL NOT NULL DEFAULT 0,
+  total_gross REAL NOT NULL DEFAULT 0,
+  UNIQUE(store_id, date, zone, time_slot)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hourly_store_date ON hourly_sales(store_id, date);
+CREATE INDEX IF NOT EXISTS idx_hourly_date_slot ON hourly_sales(date, time_slot);
+
+-- Page updates (tracks significant changes to pages for "NEW" badges)
+CREATE TABLE IF NOT EXISTS page_updates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  page_path TEXT NOT NULL UNIQUE,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  description TEXT
+);
+
+-- User page views (tracks when each user last visited each page)
+CREATE TABLE IF NOT EXISTS user_page_views (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  page_path TEXT NOT NULL,
+  viewed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, page_path),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_page_views_user ON user_page_views(user_id);

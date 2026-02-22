@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, type LucideIcon } from 'lucide-react';
 import { formatCurrency, formatInteger, formatPercentage } from '@/lib/formatters';
 
 interface KPICardProps {
@@ -10,6 +10,8 @@ interface KPICardProps {
   format?: 'currency' | 'integer' | 'decimal';
   delay?: number;
   comparisonLabel?: string;
+  icon?: LucideIcon;
+  iconColor?: string;
 }
 
 export function KPICard({
@@ -20,6 +22,8 @@ export function KPICard({
   format = 'currency',
   delay = 0,
   comparisonLabel,
+  icon: Icon,
+  iconColor = 'text-lupita-amber',
 }: KPICardProps) {
   const formattedValue =
     format === 'currency'
@@ -39,9 +43,12 @@ export function KPICard({
       transition={{ duration: 0.3, delay }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow"
     >
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-        {title}
-      </p>
+      <div className="flex items-center gap-1.5 mb-2">
+        {Icon && <Icon className={`h-3.5 w-3.5 ${iconColor}`} />}
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          {title}
+        </p>
+      </div>
       <p className="text-2xl font-bold text-foreground mb-1">{formattedValue}</p>
       {variation !== undefined && variation !== null && (
         <div className="flex items-center gap-1.5 flex-wrap">

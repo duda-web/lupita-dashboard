@@ -2,6 +2,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ZONE_COLORS, ZONE_NAMES, STORE_NAMES, STORE_COLORS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/formatters';
 import { motion } from 'framer-motion';
+import { PieChart as PieChartIcon } from 'lucide-react';
 import type { ZoneMixResponse } from '@/types';
 
 interface Props {
@@ -113,7 +114,10 @@ export function ZoneMixChart({ data }: Props) {
         animate={{ opacity: 1 }}
         className="rounded-xl border border-border bg-card p-4 shadow-sm"
       >
-        <h3 className="text-sm font-semibold text-foreground mb-4">Mix por Zona</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <PieChartIcon className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">Mix por Zona</h3>
+        </div>
         <p className="text-sm text-muted-foreground text-center py-8">
           Sem dados de zonas para o periodo selecionado
         </p>
@@ -128,7 +132,10 @@ export function ZoneMixChart({ data }: Props) {
       transition={{ delay: 0.5 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Mix por Zona</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <PieChartIcon className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Mix por Zona</h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           {/* Inner ring: store breakdown (only when Todas as lojas) */}

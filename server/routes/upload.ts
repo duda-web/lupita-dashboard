@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authMiddleware } from '../middleware/authMiddleware';
-import { importXlsxFile, importZoneFile, importArticleFile, importABCFile, detectFileType } from '../services/importService';
+import { importXlsxFile, importZoneFile, importArticleFile, importABCFile, importHourlyFile, detectFileType } from '../services/importService';
 import { getImportHistory } from '../db/queries';
 
 const router = Router();
@@ -53,6 +53,9 @@ router.post('/import', upload.array('files', 10), (req: Request, res: Response) 
         const fileType = detectFileType(file.path);
         if (fileType === 'abc') {
           return importABCFile(file.path);
+        }
+        if (fileType === 'horario') {
+          return importHourlyFile(file.path);
         }
         if (fileType === 'zonas') {
           return importZoneFile(file.path);

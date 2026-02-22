@@ -1,14 +1,15 @@
-import { upsertDailySale, upsertZoneSale, upsertArticleSale, upsertABCDaily, logImport } from '../db/queries';
+import { upsertDailySale, upsertZoneSale, upsertArticleSale, upsertABCDaily, upsertHourlySale, logImport } from '../db/queries';
 import { parseXlsxFile, ParseResult } from './xlsxParser';
 import { parseZoneFile, ZoneParseResult } from './zoneParser';
 import { parseArticleFile, ArticleParseResult } from './articleParser';
 import { parseABCFile, ABCParseResult, isABCFile } from './abcParser';
+import { parseHourlyFile, HourlyParseResult } from './hourlyParser';
 import * as XLSX from 'xlsx';
 import path from 'path';
 
 export interface ImportResult {
   filename: string;
-  fileType: 'apuramento' | 'zonas' | 'artigos' | 'abc' | 'unknown';
+  fileType: 'apuramento' | 'zonas' | 'artigos' | 'abc' | 'horario' | 'unknown';
   dateFrom: string | null;
   dateTo: string | null;
   recordsInserted: number;
@@ -17,7 +18,7 @@ export interface ImportResult {
   stores: string[];
 }
 
-export type FileType = 'apuramento' | 'zonas' | 'artigos' | 'abc' | 'unknown';
+export type FileType = 'apuramento' | 'zonas' | 'artigos' | 'abc' | 'horario' | 'unknown';
 
 /** Auto-detect whether an xlsx file is "Apuramento Completo", "Zonas", "Artigos", or "ABC" */
 export function detectFileType(filePath: string): FileType {
@@ -25,6 +26,7 @@ export function detectFileType(filePath: string): FileType {
 
   // Check filename first
   if (filename.includes('abc')) return 'abc';
+  if (filename.includes('hora')) return 'horario';
   if (filename.includes('zona') || filename.includes('zonas')) return 'zonas';
   if (filename.includes('artigo') || filename.includes('artigos')) return 'artigos';
 
@@ -49,7 +51,9 @@ export function detectFileType(filePath: string): FileType {
 
       // Article files have "Cod. Artigo" or "Artigo" + "Familia" columns
       if (headerStr.includes('Artigo') && headerStr.includes('Familia')) return 'artigos';
-      // Zone files have "Zona" column
+      // Hourly files have "Hora" column alongside "Zona"
+      if (headerStr.includes('Hora') && headerStr.includes('Zona')) return 'horario';
+      // Zone files have "Zona" column (but NOT "Hora")
       if (headerStr.includes('Zona')) return 'zonas';
       // Apuramento Completo has "Tickets" or "Ticket"
       if (headerStr.includes('Tickets') || headerStr.includes('Ticket')) return 'apuramento';
@@ -229,6 +233,46 @@ export function importABCFile(filePath: string): ImportResult {
   return {
     filename,
     fileType: 'abc',
+    dateFrom: parseResult.dateFrom,
+    dateTo: parseResult.dateTo,
+    recordsInserted,
+    recordsUpdated,
+    errors,
+    stores: parseResult.stores,
+  };
+}
+
+export function importHourlyFile(filePath: string): ImportResult {
+  const filename = path.basename(filePath);
+  const parseResult: HourlyParseResult = parseHourlyFile(filePath);
+
+  let recordsInserted = 0;
+  let recordsUpdated = 0;
+  const errors = [...parseResult.errors];
+
+  for (const row of parseResult.rows) {
+    try {
+      const result = upsertHourlySale(row);
+      if (result === 'inserted') recordsInserted++;
+      else recordsUpdated++;
+    } catch (err: any) {
+      errors.push(`Erro ao importar horário ${row.store_id} ${row.date} ${row.time_slot}: ${err.message}`);
+    }
+  }
+
+  logImport({
+    filename,
+    date_from: parseResult.dateFrom,
+    date_to: parseResult.dateTo,
+    records_inserted: recordsInserted,
+    records_updated: recordsUpdated,
+    errors: errors.length > 0 ? errors : null,
+    import_type: 'hourly',
+  });
+
+  return {
+    filename,
+    fileType: 'horario',
     dateFrom: parseResult.dateFrom,
     dateTo: parseResult.dateTo,
     recordsInserted,

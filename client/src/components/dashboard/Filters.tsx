@@ -7,12 +7,14 @@ import { DatePicker } from '@/components/ui/date-picker';
 
 interface FiltersProps {
   children?: ReactNode;
+  bottomChildren?: ReactNode;
+  hideComparison?: boolean;
 }
 
-export function Filters({ children }: FiltersProps) {
+export function Filters({ children, bottomChildren, hideComparison }: FiltersProps) {
   const { filters, activeQuickFilter, setDateRange, setStoreId, setComparison, applyQuickFilter } = useFilters();
 
-  const quickFilters: QuickFilter[] = ['this_week', 'last_week', 'this_month', 'last_month', 'this_year', 'last_year'];
+  const quickFilters: QuickFilter[] = ['last_week', 'this_month', 'last_month', 'this_year', 'last_year'];
   const comparisons: ComparisonType[] = ['wow', 'mom', 'yoy'];
 
   return (
@@ -64,25 +66,31 @@ export function Filters({ children }: FiltersProps) {
           </button>
         ))}
 
-        <div className="h-6 w-px bg-border mx-1" />
+        {!hideComparison && (
+          <>
+            <div className="h-6 w-px bg-border mx-1" />
 
-        <div className="flex items-center gap-1">
-          <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground mr-1" />
-          {comparisons.map((c) => (
-            <button
-              key={c}
-              onClick={() => setComparison(c)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                filters.comparison === c
-                  ? 'bg-lupita-amber text-white'
-                  : 'border border-border bg-card text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {c.toUpperCase()}
-            </button>
-          ))}
-        </div>
+            <div className="flex items-center gap-1">
+              <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+              {comparisons.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setComparison(c)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    filters.comparison === c
+                      ? 'bg-lupita-amber text-white'
+                      : 'border border-border bg-card text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {c === 'wow' ? 'WoW' : c === 'mom' ? 'MoM' : 'YoY'}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
+
+      {bottomChildren}
     </div>
   );
 }

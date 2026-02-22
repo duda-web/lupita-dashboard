@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { CalendarDays } from 'lucide-react';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
 
 interface MTDCardProps {
@@ -31,9 +32,12 @@ export function MTDCard({
       transition={{ duration: 0.3, delay: 0.2 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
-        MTD (Mês em curso)
-      </p>
+      <div className="flex items-center gap-1.5 mb-1">
+        <CalendarDays className="h-3.5 w-3.5 text-lupita-amber" />
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          MTD (Mês em curso)
+        </p>
+      </div>
       {monthLabel && (
         <p className="text-[11px] text-muted-foreground mb-2">{monthLabel}</p>
       )}

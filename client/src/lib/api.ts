@@ -13,7 +13,11 @@ import type {
   ABCEvolutionPoint,
   ABCStoreComparisonPoint,
   ABCInsightsResponse,
+  ABCCategory,
   ProjectionResponse,
+  InsightsGenerateRequest,
+  InsightsGenerateResponse,
+  InsightsHistoryEntry,
 } from '@/types';
 
 const API_BASE = '/api';
@@ -70,30 +74,45 @@ export async function getMe() {
   return request<{ user: LoginResponse['user'] }>('/auth/me');
 }
 
+// Last sales date (used across the entire app for date cutoff)
+export async function fetchLastSalesDateGeneral(storeId?: string): Promise<string> {
+  const query = storeId ? `?storeId=${storeId}` : '';
+  const result = await request<{ lastDate: string }>(`/kpis/last-sales-date${query}`);
+  return result.lastDate;
+}
+
 // KPIs
 export async function fetchKPIs(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
   comparison?: ComparisonType;
+  channel?: string;
 }): Promise<KPIResponse> {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     ...(params.storeId && { storeId: params.storeId }),
     ...(params.comparison && { comparison: params.comparison }),
+    ...(params.channel && params.channel !== 'all' && { channel: params.channel }),
   });
   return request<KPIResponse>(`/kpis?${query}`);
 }
 
-export async function fetchMTD(storeId?: string): Promise<MTDResponse> {
-  const query = storeId ? `?storeId=${storeId}` : '';
-  return request<MTDResponse>(`/kpis/mtd${query}`);
+export async function fetchMTD(storeId?: string, channel?: string): Promise<MTDResponse> {
+  const query = new URLSearchParams();
+  if (storeId) query.set('storeId', storeId);
+  if (channel && channel !== 'all') query.set('channel', channel);
+  const qs = query.toString();
+  return request<MTDResponse>(`/kpis/mtd${qs ? `?${qs}` : ''}`);
 }
 
-export async function fetchYTD(storeId?: string): Promise<YTDResponse> {
-  const query = storeId ? `?storeId=${storeId}` : '';
-  return request<YTDResponse>(`/kpis/ytd${query}`);
+export async function fetchYTD(storeId?: string, channel?: string): Promise<YTDResponse> {
+  const query = new URLSearchParams();
+  if (storeId) query.set('storeId', storeId);
+  if (channel && channel !== 'all') query.set('channel', channel);
+  const qs = query.toString();
+  return request<YTDResponse>(`/kpis/ytd${qs ? `?${qs}` : ''}`);
 }
 
 export async function fetchProjection(storeId?: string): Promise<ProjectionResponse> {
@@ -104,13 +123,15 @@ export async function fetchProjection(storeId?: string): Promise<ProjectionRespo
 // Charts
 export async function fetchChartData(
   type: string,
-  params: { dateFrom: string; dateTo: string; storeId?: string; channel?: string }
+  params: { dateFrom: string; dateTo: string; storeId?: string; channel?: string; zone?: string; dayType?: string }
 ) {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     ...(params.storeId && { storeId: params.storeId }),
     ...(params.channel && { channel: params.channel }),
+    ...(params.zone && { zone: params.zone }),
+    ...(params.dayType && { dayType: params.dayType }),
   });
   return request<any[]>(`/charts/${type}?${query}`);
 }
@@ -182,11 +203,15 @@ export async function fetchABCRanking(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: ABCCategory;
+  channel?: string;
 }): Promise<ABCArticle[]> {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     ...(params.storeId && { storeId: params.storeId }),
+    ...(params.category && params.category !== 'all' && { category: params.category }),
+    ...(params.channel && params.channel !== 'all' && { channel: params.channel }),
   });
   return request<ABCArticle[]>(`/abc/ranking?${query}`);
 }
@@ -195,11 +220,15 @@ export async function fetchABCDistribution(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: ABCCategory;
+  channel?: string;
 }): Promise<ABCDistributionResponse> {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     ...(params.storeId && { storeId: params.storeId }),
+    ...(params.category && params.category !== 'all' && { category: params.category }),
+    ...(params.channel && params.channel !== 'all' && { channel: params.channel }),
   });
   return request<ABCDistributionResponse>(`/abc/distribution?${query}`);
 }
@@ -208,11 +237,15 @@ export async function fetchABCPareto(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: ABCCategory;
+  channel?: string;
 }): Promise<ABCArticle[]> {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     ...(params.storeId && { storeId: params.storeId }),
+    ...(params.category && params.category !== 'all' && { category: params.category }),
+    ...(params.channel && params.channel !== 'all' && { channel: params.channel }),
   });
   return request<ABCArticle[]>(`/abc/pareto?${query}`);
 }
@@ -221,11 +254,15 @@ export async function fetchABCEvolution(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: ABCCategory;
+  channel?: string;
 }): Promise<ABCEvolutionPoint[]> {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     ...(params.storeId && { storeId: params.storeId }),
+    ...(params.category && params.category !== 'all' && { category: params.category }),
+    ...(params.channel && params.channel !== 'all' && { channel: params.channel }),
   });
   return request<ABCEvolutionPoint[]>(`/abc/evolution?${query}`);
 }
@@ -233,10 +270,14 @@ export async function fetchABCEvolution(params: {
 export async function fetchABCStoreComparison(params: {
   dateFrom: string;
   dateTo: string;
+  category?: ABCCategory;
+  channel?: string;
 }): Promise<ABCStoreComparisonPoint[]> {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
+    ...(params.category && params.category !== 'all' && { category: params.category }),
+    ...(params.channel && params.channel !== 'all' && { channel: params.channel }),
   });
   return request<ABCStoreComparisonPoint[]>(`/abc/store-comparison?${query}`);
 }
@@ -245,11 +286,15 @@ export async function fetchABCConcentration(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: ABCCategory;
+  channel?: string;
 }): Promise<ABCConcentration> {
   const query = new URLSearchParams({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     ...(params.storeId && { storeId: params.storeId }),
+    ...(params.category && params.category !== 'all' && { category: params.category }),
+    ...(params.channel && params.channel !== 'all' && { channel: params.channel }),
   });
   return request<ABCConcentration>(`/abc/concentration?${query}`);
 }
@@ -258,9 +303,56 @@ export async function fetchABCInsights(params: {
   dateFrom: string;
   dateTo: string;
   storeId?: string;
+  category?: ABCCategory;
 }): Promise<ABCInsightsResponse> {
   return request<ABCInsightsResponse>('/abc/insights', {
     method: 'POST',
     body: JSON.stringify(params),
+  });
+}
+
+// ── Comprehensive Insights IA ──
+
+export async function fetchLastSalesDate(storeId?: string): Promise<string> {
+  const query = storeId ? `?storeId=${storeId}` : '';
+  const result = await request<{ lastDate: string }>(`/insights/last-sales-date${query}`);
+  return result.lastDate;
+}
+
+export async function generateInsights(
+  params: InsightsGenerateRequest
+): Promise<InsightsGenerateResponse> {
+  return request<InsightsGenerateResponse>('/insights/generate', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export async function fetchInsightsHistory(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<InsightsHistoryEntry[]> {
+  const query = new URLSearchParams();
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.offset) query.set('offset', String(params.offset));
+  const qs = query.toString();
+  return request<InsightsHistoryEntry[]>(`/insights/history${qs ? `?${qs}` : ''}`);
+}
+
+export async function fetchInsightById(id: number): Promise<InsightsHistoryEntry> {
+  return request<InsightsHistoryEntry>(`/insights/history/${id}`);
+}
+
+// ── NEW Tags ──
+
+export async function fetchNewPages(): Promise<string[]> {
+  const result = await request<{ pages: string[] }>('/new-tags');
+  return result.pages;
+}
+
+export async function markPageSeen(pagePath: string): Promise<void> {
+  await request<{ ok: boolean }>('/new-tags/mark-seen', {
+    method: 'POST',
+    body: JSON.stringify({ pagePath }),
   });
 }

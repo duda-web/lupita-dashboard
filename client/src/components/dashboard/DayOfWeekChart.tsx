@@ -4,6 +4,7 @@ import {
 import { STORE_COLORS, STORE_NAMES, DAY_ORDER } from '@/lib/constants';
 import { formatCurrency } from '@/lib/formatters';
 import { motion } from 'framer-motion';
+import { CalendarDays } from 'lucide-react';
 
 interface DataPoint {
   day_of_week: string;
@@ -59,7 +60,10 @@ export function DayOfWeekChart({ data }: Props) {
       transition={{ delay: 0.4 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Faturação Média por Dia da Semana</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <CalendarDays className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Faturação Média por Dia da Semana</h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

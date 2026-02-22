@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, EyeOff, Eye, ListOrdered } from 'lucide-react';
 import type { ABCArticle } from '@/types';
 import { ABC_MATRIX_LABELS } from '@/types';
 import { formatCurrency, formatInteger } from '@/lib/formatters';
@@ -39,9 +39,16 @@ export function ABCRankingTable({ data }: Props) {
   const [groupFilter, setGroupFilter] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('ranking');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [hideInactive, setHideInactive] = useState(false);
+
+  const inactiveCount = useMemo(() => data.filter((d) => d.inactive).length, [data]);
 
   const filtered = useMemo(() => {
     let items = [...data];
+
+    if (hideInactive) {
+      items = items.filter((d) => !d.inactive);
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -61,7 +68,7 @@ export function ABCRankingTable({ data }: Props) {
       return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
     });
     return items;
-  }, [data, groupFilter, search, sortKey, sortDir]);
+  }, [data, groupFilter, search, sortKey, sortDir, hideInactive]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -89,16 +96,38 @@ export function ABCRankingTable({ data }: Props) {
       {/* Header with search + group filter */}
       <div className="p-4 border-b border-border space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-foreground">Ranking ABC</h3>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Procurar artigo..."
-              className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-lupita-amber w-44"
-            />
+          <div>
+            <div className="flex items-center gap-2">
+              <ListOrdered className="h-4 w-4 text-lupita-amber" />
+              <h3 className="text-sm font-semibold text-foreground">Ranking ABC</h3>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Todos os artigos ordenados por faturação · Classe ABC bidimensional (Valor × Quantidade) · Filtros por grupo</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {inactiveCount > 0 && (
+              <button
+                onClick={() => setHideInactive((v) => !v)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  hideInactive
+                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                    : 'border border-border text-muted-foreground hover:text-foreground hover:bg-accent'
+                }`}
+                title={hideInactive ? 'Mostrar artigos inativos' : 'Ocultar artigos inativos'}
+              >
+                {hideInactive ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                {inactiveCount} inativo{inactiveCount !== 1 ? 's' : ''}
+              </button>
+            )}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Procurar artigo..."
+                className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-lupita-amber w-44"
+              />
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1 flex-wrap">
@@ -150,12 +179,15 @@ export function ABCRankingTable({ data }: Props) {
             {filtered.map((item) => {
               const meta = ABC_MATRIX_LABELS[item.abc_class];
               return (
-                <tr key={item.article_name} className="hover:bg-accent/30 transition-colors">
+                <tr key={item.article_name} className={`hover:bg-accent/30 transition-colors ${item.inactive ? 'opacity-50' : ''}`}>
                   <td className="px-3 py-2 text-muted-foreground font-mono">{item.ranking}</td>
                   <td className="px-3 py-2 font-medium text-foreground max-w-[200px] truncate">
                     {item.article_name}
                     {item.code_count > 1 && (
                       <span className="ml-1 text-muted-foreground font-normal text-[10px]">({item.code_count} cód.)</span>
+                    )}
+                    {item.inactive && (
+                      <span className="ml-1.5 inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">Inativo</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-center">

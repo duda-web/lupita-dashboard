@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { CalendarRange } from 'lucide-react';
 import { formatCurrency, formatPercentage, formatInteger } from '@/lib/formatters';
 
 interface YTDCardProps {
@@ -18,9 +19,12 @@ export function YTDCard({ current, previousYear, variation, customers, avgPerCus
       transition={{ duration: 0.3, delay: 0.25 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
-        YTD (Ano em curso)
-      </p>
+      <div className="flex items-center gap-1.5 mb-1">
+        <CalendarRange className="h-3.5 w-3.5 text-lupita-amber" />
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          YTD (Ano em curso)
+        </p>
+      </div>
       {yearLabel && (
         <p className="text-[11px] text-muted-foreground mb-2">{yearLabel}</p>
       )}

@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { TrendingUp } from 'lucide-react';
 import type { ArticleTrendDataPoint } from '@/types';
 import { ARTICLE_TREND_COLORS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/formatters';
@@ -99,7 +100,10 @@ export function ArticleTrendChart({ data }: Props) {
         animate={{ opacity: 1 }}
         className="rounded-xl border border-border bg-card p-4 shadow-sm"
       >
-        <h3 className="text-sm font-semibold text-foreground mb-4">Tendencia Top 5 Artigos</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">Tendencia Top 5 Artigos</h3>
+        </div>
         <p className="text-sm text-muted-foreground text-center py-8">
           Sem dados de tendencia para o periodo selecionado
         </p>
@@ -114,9 +118,12 @@ export function ArticleTrendChart({ data }: Props) {
       transition={{ delay: 0.4 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">
-        Top 5 Artigos por Mes
-      </h3>
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingUp className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">
+          Top 5 Artigos por Mes
+        </h3>
+      </div>
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
           <XAxis

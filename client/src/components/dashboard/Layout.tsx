@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { LayoutDashboard, Upload, LogOut, Menu, X, Sun, Moon, ShoppingBag, BarChart3, BookOpen } from 'lucide-react';
+import { useNewTags } from '@/hooks/useNewTags';
+import { LayoutDashboard, Upload, LogOut, Menu, X, Sun, Moon, ShoppingBag, BarChart3, Sparkles, Clock, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LupitaLogo } from './LupitaLogo';
 
@@ -10,6 +11,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const { isNew } = useNewTags();
   const toggleTheme = () => {
     document.documentElement.classList.toggle('dark');
     setIsDark(!isDark);
@@ -22,8 +24,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/hourly', icon: Clock, label: 'Faturação / Horário' },
     { to: '/artigos', icon: ShoppingBag, label: 'Artigos' },
     { to: '/abc', icon: BarChart3, label: 'Análise ABC' },
+    { to: '/insights', icon: Sparkles, label: 'Insights AI' },
     { to: '/upload', icon: Upload, label: 'Upload' },
   ];
 
@@ -40,15 +44,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
             to={item.to}
             onClick={() => setSidebarOpen(false)}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              `flex items-center gap-1.5 px-2.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-lupita-amber/10 text-lupita-amber'
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`
             }
           >
-            <item.icon className="h-4 w-4" />
-            {item.label}
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1 min-w-0 whitespace-nowrap">
+              {item.label}
+              {isNew(item.to) && (
+                <span className="inline-flex align-middle ml-1 text-[6px] font-bold uppercase text-lupita-amber bg-lupita-amber/10 border border-lupita-amber/25 rounded-sm px-[3px] py-[1px] leading-none">new</span>
+              )}
+            </span>
           </NavLink>
         ))}
       </nav>
@@ -59,15 +68,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
           to="/instrucoes"
           onClick={() => setSidebarOpen(false)}
           className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            `flex items-center gap-1.5 px-2.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
               isActive
                 ? 'bg-lupita-amber/10 text-lupita-amber'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent'
             }`
           }
         >
-          <BookOpen className="h-4 w-4" />
-          Informações
+          <BookOpen className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1 min-w-0 whitespace-nowrap">
+            Informações
+            {isNew('/instrucoes') && (
+              <span className="inline-flex align-middle ml-1 text-[6px] font-bold uppercase text-lupita-amber bg-lupita-amber/10 border border-lupita-amber/25 rounded-sm px-[3px] py-[1px] leading-none">new</span>
+            )}
+          </span>
         </NavLink>
       </div>
 
@@ -98,7 +112,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-56 md:flex-col border-r border-border bg-card">
+      <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-60 md:flex-col border-r border-border bg-card">
         <NavContent />
       </aside>
 
@@ -126,11 +140,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside
-              initial={{ x: -256 }}
+              initial={{ x: -260 }}
               animate={{ x: 0 }}
-              exit={{ x: -256 }}
+              exit={{ x: -260 }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="fixed inset-y-0 left-0 z-50 w-56 bg-card border-r border-border md:hidden"
+              className="fixed inset-y-0 left-0 z-50 w-60 bg-card border-r border-border md:hidden"
             >
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -145,7 +159,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       {/* Main content */}
-      <main className="md:pl-56">
+      <main className="md:pl-60">
         <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
           {children}
         </div>

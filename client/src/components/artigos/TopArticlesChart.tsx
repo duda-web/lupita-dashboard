@@ -10,6 +10,7 @@ import {
   LabelList,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { Trophy } from 'lucide-react';
 import type { ArticleDataPoint } from '@/types';
 import { formatCurrency, formatInteger } from '@/lib/formatters';
 
@@ -138,7 +139,10 @@ export function TopArticlesChart({ data, metric = 'revenue' }: Props) {
         animate={{ opacity: 1 }}
         className="rounded-xl border border-border bg-card p-4 shadow-sm"
       >
-        <h3 className="text-sm font-semibold text-foreground mb-4">{config.emptyTitle}</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Trophy className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">{config.emptyTitle}</h3>
+        </div>
         <p className="text-sm text-muted-foreground text-center py-8">
           Sem dados de artigos para o periodo selecionado
         </p>
@@ -153,9 +157,12 @@ export function TopArticlesChart({ data, metric = 'revenue' }: Props) {
       transition={{ delay: 0.3 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">
-        Top {chartData.length} Produtos por {config.title}
-      </h3>
+      <div className="flex items-center gap-2 mb-4">
+        <Trophy className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">
+          Top {chartData.length} Produtos por {config.title}
+        </h3>
+      </div>
       <ResponsiveContainer width="100%" height={Math.max(300, chartData.length * 32 + 40)}>
         <BarChart
           data={chartData}

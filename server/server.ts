@@ -11,6 +11,8 @@ import kpiRoutes from './routes/kpis';
 import chartRoutes from './routes/charts';
 import exportRoutes from './routes/export';
 import abcRoutes from './routes/abc';
+import insightsRoutes from './routes/insights';
+import newTagsRoutes from './routes/newTags';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -29,6 +31,8 @@ app.use('/api/kpis', kpiRoutes);
 app.use('/api/charts', chartRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/abc', abcRoutes);
+app.use('/api/insights', insightsRoutes);
+app.use('/api/new-tags', newTagsRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

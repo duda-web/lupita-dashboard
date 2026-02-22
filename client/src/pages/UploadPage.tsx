@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Layout } from '@/components/dashboard/Layout';
 import { uploadFiles, getImportHistory } from '@/lib/api';
 import type { ImportResponse, ImportLogEntry } from '@/types';
 import { formatDate } from '@/lib/formatters';
@@ -70,8 +69,7 @@ export function UploadPage() {
   };
 
   return (
-    <Layout>
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
         <div>
           <h2 className="text-xl font-bold text-foreground">Upload de Dados</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -236,7 +234,6 @@ export function UploadPage() {
             </div>
           </div>
         )}
-      </div>
-    </Layout>
+    </div>
   );
 }

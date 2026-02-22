@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpDown, Download } from 'lucide-react';
+import { ArrowUpDown, Download, Table2 } from 'lucide-react';
 import { formatCurrency, formatInteger, formatPercentage } from '@/lib/formatters';
 import { STORE_NAMES } from '@/lib/constants';
 import { exportCSV } from '@/lib/api';
@@ -99,7 +99,10 @@ export function DataTable({ data }: Props) {
       className="rounded-xl border border-border bg-card shadow-sm"
     >
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">Detalhe Diário</h3>
+        <div className="flex items-center gap-2">
+          <Table2 className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">Detalhe Diário</h3>
+        </div>
         <button
           onClick={handleExport}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-lupita-amber text-white hover:bg-amber-600 transition-colors"

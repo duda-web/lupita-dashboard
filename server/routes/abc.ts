@@ -27,7 +27,7 @@ router.get('/date-range', (req: Request, res: Response) => {
 // ABC Ranking
 router.get('/ranking', (req: Request, res: Response) => {
   try {
-    const { dateFrom, dateTo, storeId } = req.query;
+    const { dateFrom, dateTo, storeId, category, channel } = req.query;
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
@@ -36,6 +36,8 @@ router.get('/ranking', (req: Request, res: Response) => {
       dateFrom: dateFrom as string,
       dateTo: dateTo as string,
       storeId: storeId as string | undefined,
+      category: (category as string) || undefined,
+      channel: (channel as 'all' | 'loja' | 'delivery') || 'all',
     });
     res.json(data);
   } catch (err: any) {
@@ -47,7 +49,7 @@ router.get('/ranking', (req: Request, res: Response) => {
 // ABC Distribution
 router.get('/distribution', (req: Request, res: Response) => {
   try {
-    const { dateFrom, dateTo, storeId } = req.query;
+    const { dateFrom, dateTo, storeId, category, channel } = req.query;
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
@@ -56,6 +58,8 @@ router.get('/distribution', (req: Request, res: Response) => {
       dateFrom: dateFrom as string,
       dateTo: dateTo as string,
       storeId: storeId as string | undefined,
+      category: (category as string) || undefined,
+      channel: (channel as 'all' | 'loja' | 'delivery') || 'all',
     });
     res.json(data);
   } catch (err: any) {
@@ -67,7 +71,7 @@ router.get('/distribution', (req: Request, res: Response) => {
 // ABC Pareto
 router.get('/pareto', (req: Request, res: Response) => {
   try {
-    const { dateFrom, dateTo, storeId } = req.query;
+    const { dateFrom, dateTo, storeId, category, channel } = req.query;
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
@@ -76,6 +80,8 @@ router.get('/pareto', (req: Request, res: Response) => {
       dateFrom: dateFrom as string,
       dateTo: dateTo as string,
       storeId: storeId as string | undefined,
+      category: (category as string) || undefined,
+      channel: (channel as 'all' | 'loja' | 'delivery') || 'all',
     });
     res.json(data);
   } catch (err: any) {
@@ -87,7 +93,7 @@ router.get('/pareto', (req: Request, res: Response) => {
 // ABC Evolution (ranking over time)
 router.get('/evolution', (req: Request, res: Response) => {
   try {
-    const { dateFrom, dateTo, storeId } = req.query;
+    const { dateFrom, dateTo, storeId, category, channel } = req.query;
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
@@ -96,6 +102,8 @@ router.get('/evolution', (req: Request, res: Response) => {
       dateFrom: dateFrom as string,
       dateTo: dateTo as string,
       storeId: storeId as string | undefined,
+      category: (category as string) || undefined,
+      channel: (channel as 'all' | 'loja' | 'delivery') || 'all',
     });
     res.json(data);
   } catch (err: any) {
@@ -107,7 +115,7 @@ router.get('/evolution', (req: Request, res: Response) => {
 // ABC Store comparison
 router.get('/store-comparison', (req: Request, res: Response) => {
   try {
-    const { dateFrom, dateTo } = req.query;
+    const { dateFrom, dateTo, category, channel } = req.query;
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
@@ -115,6 +123,8 @@ router.get('/store-comparison', (req: Request, res: Response) => {
     const data = getABCStoreComparison({
       dateFrom: dateFrom as string,
       dateTo: dateTo as string,
+      category: (category as string) || undefined,
+      channel: (channel as 'all' | 'loja' | 'delivery') || 'all',
     });
     res.json(data);
   } catch (err: any) {
@@ -126,7 +136,7 @@ router.get('/store-comparison', (req: Request, res: Response) => {
 // ABC Concentration
 router.get('/concentration', (req: Request, res: Response) => {
   try {
-    const { dateFrom, dateTo, storeId } = req.query;
+    const { dateFrom, dateTo, storeId, category, channel } = req.query;
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
@@ -135,6 +145,8 @@ router.get('/concentration', (req: Request, res: Response) => {
       dateFrom: dateFrom as string,
       dateTo: dateTo as string,
       storeId: storeId as string | undefined,
+      category: (category as string) || undefined,
+      channel: (channel as 'all' | 'loja' | 'delivery') || 'all',
     });
     res.json(data);
   } catch (err: any) {
@@ -146,7 +158,7 @@ router.get('/concentration', (req: Request, res: Response) => {
 // AI Insights endpoint
 router.post('/insights', async (req: Request, res: Response) => {
   try {
-    const { dateFrom, dateTo, storeId } = req.body;
+    const { dateFrom, dateTo, storeId, category } = req.body;
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
@@ -161,10 +173,12 @@ router.post('/insights', async (req: Request, res: Response) => {
       return;
     }
 
-    // Gather data for insights
-    const ranking = getABCRanking({ dateFrom, dateTo, storeId });
-    const distribution = getABCDistribution({ dateFrom, dateTo, storeId });
-    const concentration = getABCConcentration({ dateFrom, dateTo, storeId });
+    // Gather data for insights — filter out inactive articles
+    const rankingFull = getABCRanking({ dateFrom, dateTo, storeId, category });
+    const ranking = rankingFull.filter((a: any) => !a.inactive);
+    const inactiveCount = rankingFull.length - ranking.length;
+    const distribution = getABCDistribution({ dateFrom, dateTo, storeId, category });
+    const concentration = getABCConcentration({ dateFrom, dateTo, storeId, category });
 
     const topArticles = ranking.slice(0, 10);
     const bottomArticles = ranking.slice(-5);
@@ -173,7 +187,12 @@ router.post('/insights', async (req: Request, res: Response) => {
     const dataPayload = {
       period: { dateFrom, dateTo },
       store: storeId || 'all',
+      category: category || 'all',
       classification_method: 'ABC Bidimensional (Valor × Quantidade), limiares: A≤70%, B≤90%, C>90%',
+      inactive_articles_excluded: inactiveCount,
+      note: inactiveCount > 0
+        ? `${inactiveCount} artigos inativos (sem vendas nos últimos 14 dias) foram excluídos. Estes já saíram do menu e não devem influenciar recomendações.`
+        : undefined,
       matrix_semantics: {
         AA: 'Estrela Absoluta — top faturação E top quantidade',
         AB: 'Premium — alta faturação, quantidade média',
@@ -231,19 +250,27 @@ A classificação ABC é bidimensional com limiares 70/90:
 - Artigos CA são especialmente importantes: vendem muito mas faturam pouco → candidatos fortes a subida de preço
 - Artigos AC são nichos premium: faturam bem mas vendem pouco → proteger e valorizar
 
+REGRA IMPORTANTE SOBRE ARTIGOS INATIVOS:
+Os dados que recebes já EXCLUEM artigos inativos (sem vendas nos últimos 14 dias) — são artigos que já saíram do menu.
+- NÃO recomendardes retirar artigos que já não existem no menu.
+- Quando analisares artigos CC, refere-te a eles como artigos ACTIVOS no menu actual que vendem pouco — estes sim merecem atenção.
+- Se o campo "inactive_articles_excluded" > 0, podes mencionar brevemente que X artigos inativos foram excluídos da análise.
+- Contudo, se a saída de artigos antigos ajudar a explicar tendências (ex: concentração, mudança de mix), podes mencioná-lo como contexto histórico.
+- O foco dos insights deve ser sempre o PRESENTE e o FUTURO do menu actual.
+
 Formato da resposta: Markdown com secções curtas (3-5 bullet points por secção).
 Secções sugeridas:
 - 📊 Resumo Executivo (2-3 frases, incluir distribuição na matriz)
 - 🌟 Estrelas (AA) e Premium (AB/AC) — o que os destaca
 - 🔥 Populares Baratos (BA/CA) — oportunidades de repricing
-- ⚠️ Pontos de Atenção (CC, concentração excessiva, dependência)
-- 💡 Recomendações (acções concretas para optimizar mix e preços)
+- ⚠️ Pontos de Atenção (CC activos, concentração excessiva, dependência)
+- 💡 Recomendações (acções concretas para optimizar mix e preços do menu actual)
 
 Sê directo, concreto e orientado para a acção. Usa nomes reais dos artigos. Valores em euros.`,
         messages: [
           {
             role: 'user',
-            content: `Analisa estes dados ABC do período ${dateFrom} a ${dateTo}:\n\n${JSON.stringify(dataPayload, null, 2)}`,
+            content: `Analisa estes dados ABC do período ${dateFrom} a ${dateTo}${category && category !== 'all' ? ` (categoria: ${category})` : ''}:\n\n${JSON.stringify(dataPayload, null, 2)}`,
           },
         ],
       });

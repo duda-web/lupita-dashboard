@@ -3,6 +3,7 @@ import {
 } from 'recharts';
 import { formatCurrency, formatCompactCurrency } from '@/lib/formatters';
 import { motion } from 'framer-motion';
+import { Target } from 'lucide-react';
 
 interface DataPoint {
   week: string;
@@ -54,7 +55,10 @@ export function TargetChart({ data }: Props) {
       transition={{ delay: 0.55 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Real vs Objectivo</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <Target className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Real vs Objectivo</h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

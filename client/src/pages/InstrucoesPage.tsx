@@ -1,10 +1,16 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CheckSquare, Info } from 'lucide-react';
-import { Layout } from '@/components/dashboard/Layout';
 import { APP_VERSION, APP_VERSION_DATE } from '@/lib/version';
 
-const steps = [
+interface Step {
+  title: string;
+  path: string;
+  periods: string[];
+  extraRules?: string[];
+}
+
+const steps: Step[] = [
   {
     title: 'Vendas Completo',
     path: 'Relatórios > Vendas > Apuramentos > Completo',
@@ -24,6 +30,17 @@ const steps = [
     title: 'Análise ABC',
     path: 'Relatórios > Vendas > Rankings > Análise ABC Vendas',
     periods: ['Este Ano'],
+  },
+  {
+    title: 'Totais Apurados por Hora',
+    path: 'Relatórios > Vendas > Horárias > Totais Apurados',
+    periods: ['Este Ano'],
+    extraRules: [
+      'Agrupar por Data',
+      'Agrupar por Loja e Zona',
+      'Retirar LUPITA SEDE em Lojas',
+      'Período: 30 minutos',
+    ],
   },
 ];
 
@@ -69,8 +86,7 @@ export function InstrucoesPage() {
   }, []);
 
   return (
-    <Layout>
-      <motion.div
+    <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -100,7 +116,7 @@ export function InstrucoesPage() {
             </div>
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Versão</p>
-              <p className="text-sm font-medium text-foreground">v{APP_VERSION}</p>
+              <p className="text-sm font-medium text-foreground">{APP_VERSION}</p>
               <p className="text-[10px] text-muted-foreground">{APP_VERSION_DATE}</p>
             </div>
           </div>
@@ -210,6 +226,18 @@ export function InstrucoesPage() {
                           );
                         })}
                       </div>
+
+                      {/* Extra rules specific to this step */}
+                      {step.extraRules && (
+                        <div className="mt-3 space-y-1">
+                          {step.extraRules.map((rule) => (
+                            <div key={rule} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <CheckSquare className="h-3 w-3 text-lupita-amber flex-shrink-0" />
+                              {rule}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -218,6 +246,5 @@ export function InstrucoesPage() {
           </div>
         </div>
       </motion.div>
-    </Layout>
   );
 }

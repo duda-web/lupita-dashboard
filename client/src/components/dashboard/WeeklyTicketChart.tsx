@@ -4,6 +4,7 @@ import {
 import { STORE_COLORS, STORE_NAMES } from '@/lib/constants';
 import { formatCurrency } from '@/lib/formatters';
 import { motion } from 'framer-motion';
+import { UserCheck } from 'lucide-react';
 
 interface DataPoint {
   week: string;
@@ -66,7 +67,10 @@ export function WeeklyTicketChart({ data }: Props) {
       transition={{ delay: 0.35 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Evolução do VM Pessoa Semanal</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <UserCheck className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Evolução do VM Pessoa Semanal</h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

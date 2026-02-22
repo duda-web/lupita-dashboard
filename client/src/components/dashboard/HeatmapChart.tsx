@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Grid3x3 } from 'lucide-react';
 import { formatCurrency, formatCompactCurrency } from '@/lib/formatters';
 import { DAY_ORDER } from '@/lib/constants';
 
@@ -111,7 +112,10 @@ export function HeatmapChart({ data }: Props) {
       transition={{ delay: 0.5 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm relative"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-1">Heatmap Semanal</h3>
+      <div className="flex items-center gap-2 mb-1">
+        <Grid3x3 className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Heatmap Semanal</h3>
+      </div>
       <p className="text-[10px] text-muted-foreground mb-3">Faturação diária por semana ISO (números no topo = nº da semana)</p>
       <div className="overflow-x-auto">
         <div className="grid gap-0.5" style={{ minWidth: weeks.length * 20 }}>

@@ -3,6 +3,7 @@ import {
 } from 'recharts';
 import { formatCurrency, formatCompactCurrency } from '@/lib/formatters';
 import { motion } from 'framer-motion';
+import { BarChart2 } from 'lucide-react';
 
 interface DataPoint {
   month: string;
@@ -67,7 +68,10 @@ export function MonthlyComparisonChart({ currentYearData, previousYearData }: Pr
       transition={{ delay: 0.45 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Comparativo Mensal</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart2 className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Comparativo Mensal</h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

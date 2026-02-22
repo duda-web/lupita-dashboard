@@ -16,6 +16,10 @@ import {
   getChannelSplit,
   getCategoryMix,
   getProjectionData,
+  getLastSalesDate,
+  getHourlyBySlot,
+  getHourlyHeatmap,
+  getHourlyZones,
 } from '../db/queries';
 import {
   startOfWeek,
@@ -83,11 +87,14 @@ export function computeKPIsWithComparison(params: {
   dateTo: string;
   storeId?: string;
   comparison: ComparisonType;
+  channel?: 'all' | 'loja' | 'delivery';
 }) {
+  const ch = params.channel || 'all';
   const current = getKPIs({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     storeId: params.storeId,
+    channel: ch,
   });
 
   const prevPeriod = getComparisonPeriod(params.dateFrom, params.dateTo, params.comparison);
@@ -95,6 +102,7 @@ export function computeKPIsWithComparison(params: {
     dateFrom: prevPeriod.dateFrom,
     dateTo: prevPeriod.dateTo,
     storeId: params.storeId,
+    channel: ch,
   });
 
   const avgTicket = current.total_tickets > 0
@@ -115,10 +123,12 @@ export function computeKPIsWithComparison(params: {
   const storeBreakdown = getKPIsByStore({
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
+    channel: ch,
   });
   const prevStoreBreakdown = getKPIsByStore({
     dateFrom: prevPeriod.dateFrom,
     dateTo: prevPeriod.dateTo,
+    channel: ch,
   });
 
   const storeData = storeBreakdown.map((store: any) => {
@@ -179,25 +189,27 @@ export function computeKPIsWithComparison(params: {
   };
 }
 
-export function computeMTD(storeId?: string) {
+export function computeMTD(storeId?: string, channel: 'all' | 'loja' | 'delivery' = 'all') {
   const now = new Date();
   const currentMonthStart = format(startOfMonth(now), 'yyyy-MM-dd');
-  const today = format(now, 'yyyy-MM-dd');
-  const dayOfMonth = now.getDate();
+  // Use last date with actual sales data instead of today
+  const effectiveToday = getLastSalesDate(storeId);
+  const effectiveDate = parseISO(effectiveToday);
+  const dayOfMonth = effectiveDate.getDate();
 
   // Current MTD
-  const currentMTD = getKPIs({ dateFrom: currentMonthStart, dateTo: today, storeId });
+  const currentMTD = getKPIs({ dateFrom: currentMonthStart, dateTo: effectiveToday, storeId, channel });
 
   // Previous month same days
   const prevMonthStart = format(startOfMonth(subMonths(now, 1)), 'yyyy-MM-dd');
-  const prevMonthSameDay = format(subMonths(now, 1), 'yyyy-MM-dd');
-  // Adjust to same day count
+  // Adjust to same day count in previous month
   const prevMonth = subMonths(now, 1);
   const prevMTDEnd = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), Math.min(dayOfMonth, new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate()));
   const prevMTD = getKPIs({
     dateFrom: prevMonthStart,
     dateTo: format(prevMTDEnd, 'yyyy-MM-dd'),
     storeId,
+    channel,
   });
 
   // YoY same period
@@ -208,6 +220,7 @@ export function computeMTD(storeId?: string) {
     dateFrom: yoyMonthStart,
     dateTo: format(yoyMTDEnd, 'yyyy-MM-dd'),
     storeId,
+    channel,
   });
 
   // Projection: avg daily revenue * days in month
@@ -229,16 +242,18 @@ export function computeMTD(storeId?: string) {
   };
 }
 
-export function computeYTD(storeId?: string) {
+export function computeYTD(storeId?: string, channel: 'all' | 'loja' | 'delivery' = 'all') {
   const now = new Date();
   const yearStart = `${now.getFullYear()}-01-01`;
-  const today = format(now, 'yyyy-MM-dd');
+  // Use last date with actual sales data instead of today
+  const effectiveToday = getLastSalesDate(storeId);
+  const effectiveDate = parseISO(effectiveToday);
 
-  const currentYTD = getKPIs({ dateFrom: yearStart, dateTo: today, storeId });
+  const currentYTD = getKPIs({ dateFrom: yearStart, dateTo: effectiveToday, storeId, channel });
 
   const prevYearStart = `${now.getFullYear() - 1}-01-01`;
-  const prevYearSameDay = format(subYears(now, 1), 'yyyy-MM-dd');
-  const prevYTD = getKPIs({ dateFrom: prevYearStart, dateTo: prevYearSameDay, storeId });
+  const prevYearSameDay = format(subYears(effectiveDate, 1), 'yyyy-MM-dd');
+  const prevYTD = getKPIs({ dateFrom: prevYearStart, dateTo: prevYearSameDay, storeId, channel });
 
   return {
     current: currentYTD.total_revenue,
@@ -255,6 +270,8 @@ export function getChartData(params: {
   dateTo: string;
   storeId?: string;
   channel?: string;
+  zone?: string;
+  dayType?: string;
 }) {
   const articleParams = {
     dateFrom: params.dateFrom,
@@ -262,6 +279,8 @@ export function getChartData(params: {
     storeId: params.storeId,
     channel: (params.channel || 'all') as 'all' | 'loja' | 'delivery',
   };
+
+  const ch = articleParams.channel;
 
   switch (params.type) {
     case 'weekly_revenue':
@@ -271,29 +290,34 @@ export function getChartData(params: {
         dateFrom: params.dateFrom,
         dateTo: params.dateTo,
         storeId: params.storeId,
+        channel: ch,
       });
     case 'day_of_week':
       return getDayOfWeekData({
         dateFrom: params.dateFrom,
         dateTo: params.dateTo,
+        channel: ch,
       });
     case 'monthly':
       return getMonthlyData({
         dateFrom: params.dateFrom,
         dateTo: params.dateTo,
         storeId: params.storeId,
+        channel: ch,
       });
     case 'heatmap':
       return getHeatmapData({
         dateFrom: params.dateFrom,
         dateTo: params.dateTo,
         storeId: params.storeId,
+        channel: ch,
       });
     case 'target':
       return getWeeklyData({
         dateFrom: params.dateFrom,
         dateTo: params.dateTo,
         storeId: params.storeId,
+        channel: ch,
       });
     case 'zone_mix':
       return getZoneMix({
@@ -327,12 +351,33 @@ export function getChartData(params: {
       });
     case 'category_mix':
       return getCategoryMix(articleParams);
+    case 'hourly_revenue':
+      return getHourlyBySlot({
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        storeId: params.storeId,
+        zone: params.zone,
+        dayType: params.dayType,
+      });
+    case 'hourly_heatmap':
+      return getHourlyHeatmap({
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        storeId: params.storeId,
+        zone: params.zone,
+      });
+    case 'hourly_zones':
+      return getHourlyZones({
+        dateFrom: params.dateFrom,
+        dateTo: params.dateTo,
+        storeId: params.storeId,
+      });
     default:
       return [];
   }
 }
 
-export function computeProjection(storeId?: string) {
+export function computeProjection(storeId?: string, channel: 'all' | 'loja' | 'delivery' = 'all') {
   const now = new Date();
   const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
   // End of current month

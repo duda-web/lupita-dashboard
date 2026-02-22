@@ -15,7 +15,7 @@ export function ChannelSplitCard({ data }: Props) {
         animate={{ opacity: 1 }}
         className="rounded-xl border border-border bg-card p-4 shadow-sm"
       >
-        <h3 className="text-sm font-semibold text-foreground mb-4">Delivery vs Loja</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-4">Delivery vs Restaurante</h3>
         <p className="text-sm text-muted-foreground text-center py-8">
           Sem dados de canais para o periodo selecionado
         </p>
@@ -36,7 +36,7 @@ export function ChannelSplitCard({ data }: Props) {
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
       <h3 className="text-sm font-semibold text-foreground mb-4">
-        Delivery vs Loja
+        Delivery vs Restaurante
       </h3>
 
       {/* Revenue bar */}
@@ -99,7 +99,7 @@ export function ChannelSplitCard({ data }: Props) {
           <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-3 border border-amber-200 dark:border-amber-900/30">
             <div className="flex items-center gap-2 mb-2">
               <Store className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Loja</span>
+              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Restaurante</span>
             </div>
             <p className="text-lg font-bold text-foreground">{formatCurrency(data.loja_revenue)}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{formatInteger(data.loja_qty)} unidades</p>

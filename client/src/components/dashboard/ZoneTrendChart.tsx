@@ -11,6 +11,7 @@ import {
 import { ZONE_COLORS, ZONE_NAMES } from '@/lib/constants';
 import { formatCurrency, formatCompactCurrency } from '@/lib/formatters';
 import { motion } from 'framer-motion';
+import { TrendingUp } from 'lucide-react';
 import type { ZoneTrendDataPoint } from '@/types';
 import { useMemo } from 'react';
 
@@ -72,9 +73,10 @@ export function ZoneTrendChart({ data }: Props) {
         animate={{ opacity: 1 }}
         className="rounded-xl border border-border bg-card p-4 shadow-sm"
       >
-        <h3 className="text-sm font-semibold text-foreground mb-4">
-          Tendência Semanal por Zona
-        </h3>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">Tendência Semanal por Zona</h3>
+        </div>
         <p className="text-sm text-muted-foreground text-center py-8">
           Sem dados de zonas para o periodo selecionado
         </p>
@@ -89,9 +91,10 @@ export function ZoneTrendChart({ data }: Props) {
       transition={{ delay: 0.55 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">
-        Tendência Semanal por Zona
-      </h3>
+      <div className="flex items-center gap-2 mb-4">
+        <TrendingUp className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Tendência Semanal por Zona</h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />

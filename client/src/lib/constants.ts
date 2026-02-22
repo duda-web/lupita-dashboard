@@ -62,11 +62,19 @@ export const FAMILY_COLOR_PALETTE = [
 ];
 
 export const ARTICLE_TREND_COLORS = [
-  '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444',
+  '#ef4444', // vermelho
+  '#3b82f6', // azul
+  '#10b981', // verde
+  '#f59e0b', // amarelo/amber
+  '#8b5cf6', // roxo
+  '#ec4899', // rosa
+  '#06b6d4', // ciano
+  '#f97316', // laranja
+  '#6d28d9', // violeta escuro
+  '#65a30d', // verde lima
 ];
 
 export const QUICK_FILTER_LABELS: Record<string, string> = {
-  this_week: 'Esta semana',
   last_week: 'Semana passada',
   this_month: 'Este mês',
   last_month: 'Mês passado',

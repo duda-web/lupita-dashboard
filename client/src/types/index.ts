@@ -260,7 +260,7 @@ export interface ImportLogEntry {
 
 // Filter types
 export type ComparisonType = 'wow' | 'mom' | 'yoy';
-export type QuickFilter = 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'this_year' | 'last_year';
+export type QuickFilter = 'last_week' | 'this_month' | 'last_month' | 'this_year' | 'last_year';
 
 export interface FilterState {
   dateFrom: string;
@@ -277,6 +277,9 @@ export interface Store {
   open_days: string;
   opened_date: string;
 }
+
+// ABC Category filter
+export type ABCCategory = 'all' | 'pizza' | 'pizza_entradas' | 'extras_molhos' | 'bebidas_alcoolicas' | 'soft_drinks' | 'sobremesas';
 
 // ABC Analysis types — dual-dimension (Value × Quantity)
 export type ABCSingleClass = 'A' | 'B' | 'C';
@@ -299,6 +302,8 @@ export interface ABCArticle {
   ranking: number;
   qty_ranking: number;
   code_count: number;
+  inactive: boolean;
+  last_sale_date: string;
 }
 
 export interface ABCMatrixDistribution {
@@ -355,6 +360,60 @@ export interface ABCInsightsResponse {
   generated_at?: string;
   error?: string;
   message?: string;
+}
+
+// ── Comprehensive Insights IA ──
+
+export type InsightsPeriod = 'week' | 'month' | 'year' | 'custom';
+export type InsightsChannel = 'all' | 'loja' | 'delivery';
+
+export interface InsightsGenerateRequest {
+  period: InsightsPeriod;
+  dateFrom?: string;
+  dateTo?: string;
+  storeId?: string;
+  channel?: InsightsChannel;
+}
+
+export interface InsightsGenerateResponse {
+  id?: number;
+  insights?: string;
+  generated_at?: string;
+  period?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  storeId?: string | null;
+  channel?: string;
+  error?: string;
+  message?: string;
+}
+
+export interface InsightsHistoryEntry {
+  id: number;
+  period: string;
+  date_from: string;
+  date_to: string;
+  store_id: string | null;
+  channel: string;
+  insights: string;
+  generated_at: string;
+}
+
+// ── Hourly data ──
+
+export interface HourlySlotData {
+  time_slot: string;
+  total_revenue: number;
+  num_tickets: number;
+  num_customers: number;
+  avg_revenue: number;
+  days: number;
+}
+
+export interface HourlyHeatmapData {
+  time_slot: string;
+  day_of_week: number;
+  avg_revenue: number;
 }
 
 // Matrix labels, colors, and Tailwind classes for 9 dual-dimension classes

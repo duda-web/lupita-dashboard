@@ -2,6 +2,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { STORE_COLORS, STORE_NAMES } from '@/lib/constants';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
 import { motion } from 'framer-motion';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 interface Props {
   stores: Array<{
@@ -38,7 +39,10 @@ export function StoreMixChart({ stores }: Props) {
       transition={{ delay: 0.5 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Mix por Unidade</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <PieChartIcon className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Mix por Unidade</h3>
+      </div>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie

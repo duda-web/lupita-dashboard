@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { ArrowLeftRight } from 'lucide-react';
 import type { ABCStoreComparisonPoint } from '@/types';
 import { STORE_NAMES, STORE_COLORS } from '@/lib/constants';
 import { formatCurrency, formatCompactCurrency } from '@/lib/formatters';
@@ -68,7 +69,10 @@ export function ABCStoreComparison({ data }: Props) {
   if (chartData.length === 0) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Comparação entre Lojas — Top 15</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <ArrowLeftRight className="h-4 w-4 text-lupita-amber" />
+          <h3 className="text-sm font-semibold text-foreground">Comparação entre Lojas — Top 15</h3>
+        </div>
         <p className="text-sm text-muted-foreground text-center py-8">Sem dados</p>
       </motion.div>
     );
@@ -81,9 +85,11 @@ export function ABCStoreComparison({ data }: Props) {
       transition={{ delay: 0.4 }}
       className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">
-        Comparação entre Lojas — Top 15
-      </h3>
+      <div className="flex items-center gap-2 mb-1">
+        <ArrowLeftRight className="h-4 w-4 text-lupita-amber" />
+        <h3 className="text-sm font-semibold text-foreground">Comparação entre Lojas — Top 15</h3>
+      </div>
+      <p className="text-[10px] text-muted-foreground mb-3">Faturação (€) por artigo em cada loja · Barras agrupadas permitem identificar onde cada produto vende mais</p>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
           data={chartData}

@@ -1,10 +1,13 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { FilterState, ComparisonType, QuickFilter } from '@/types';
 import { getDefaultDateRange, getQuickFilterDates } from '@/lib/dateUtils';
+import { fetchLastSalesDateGeneral } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 interface FilterContextType {
   filters: FilterState;
   activeQuickFilter: QuickFilter | null;
+  lastSalesDate: string | null;
   setDateRange: (dateFrom: string, dateTo: string) => void;
   setStoreId: (storeId: string | undefined) => void;
   setComparison: (comparison: ComparisonType) => void;
@@ -14,6 +17,7 @@ interface FilterContextType {
 const FilterContext = createContext<FilterContextType | null>(null);
 
 export function FilterProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const defaultRange = getDefaultDateRange();
   const [filters, setFilters] = useState<FilterState>({
     dateFrom: defaultRange.dateFrom,
@@ -22,6 +26,22 @@ export function FilterProvider({ children }: { children: ReactNode }) {
     comparison: 'wow',
   });
   const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilter | null>('last_week');
+  const [lastSalesDate, setLastSalesDate] = useState<string | null>(null);
+
+  // Fetch last sales date when authenticated and when storeId changes
+  useEffect(() => {
+    if (!user) return; // Don't fetch if not logged in
+    fetchLastSalesDateGeneral(filters.storeId)
+      .then((date) => {
+        setLastSalesDate(date);
+        // If using a quick filter that depends on the last sales date, update the dates
+        if (activeQuickFilter === 'this_month' || activeQuickFilter === 'this_year') {
+          const { dateFrom, dateTo } = getQuickFilterDates(activeQuickFilter, date);
+          setFilters((prev) => ({ ...prev, dateFrom, dateTo }));
+        }
+      })
+      .catch(() => setLastSalesDate(null));
+  }, [user, filters.storeId]);
 
   const setDateRange = (dateFrom: string, dateTo: string) => {
     setFilters((prev) => ({ ...prev, dateFrom, dateTo }));
@@ -37,14 +57,14 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   };
 
   const applyQuickFilter = (filter: QuickFilter) => {
-    const { dateFrom, dateTo } = getQuickFilterDates(filter);
+    const { dateFrom, dateTo } = getQuickFilterDates(filter, lastSalesDate);
     setFilters((prev) => ({ ...prev, dateFrom, dateTo }));
     setActiveQuickFilter(filter);
   };
 
   return (
     <FilterContext.Provider
-      value={{ filters, activeQuickFilter, setDateRange, setStoreId, setComparison, applyQuickFilter }}
+      value={{ filters, activeQuickFilter, lastSalesDate, setDateRange, setStoreId, setComparison, applyQuickFilter }}
     >
       {children}
     </FilterContext.Provider>

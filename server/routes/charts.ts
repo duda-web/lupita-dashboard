@@ -8,14 +8,14 @@ router.use(authMiddleware);
 router.get('/:type', (req: Request, res: Response) => {
   try {
     const { type } = req.params;
-    const { dateFrom, dateTo, storeId, channel } = req.query;
+    const { dateFrom, dateTo, storeId, channel, zone, dayType } = req.query;
 
     if (!dateFrom || !dateTo) {
       res.status(400).json({ error: 'dateFrom e dateTo são obrigatórios' });
       return;
     }
 
-    const validTypes = ['weekly_revenue', 'weekly_ticket', 'day_of_week', 'monthly', 'heatmap', 'target', 'customers', 'zone_mix', 'zone_trend', 'top_articles', 'family_mix', 'article_trend', 'articles_by_store', 'channel_split', 'category_mix'];
+    const validTypes = ['weekly_revenue', 'weekly_ticket', 'day_of_week', 'monthly', 'heatmap', 'target', 'customers', 'zone_mix', 'zone_trend', 'top_articles', 'family_mix', 'article_trend', 'articles_by_store', 'channel_split', 'category_mix', 'hourly_revenue', 'hourly_heatmap', 'hourly_zones'];
     if (!validTypes.includes(type)) {
       res.status(400).json({ error: `Tipo inválido. Opções: ${validTypes.join(', ')}` });
       return;
@@ -27,6 +27,8 @@ router.get('/:type', (req: Request, res: Response) => {
       dateTo: dateTo as string,
       storeId: storeId as string | undefined,
       channel: (channel as string | undefined) || 'all',
+      zone: zone as string | undefined,
+      dayType: dayType as string | undefined,
     });
 
     res.json(data);
