@@ -13,6 +13,8 @@ import exportRoutes from './routes/export';
 import abcRoutes from './routes/abc';
 import insightsRoutes from './routes/insights';
 import newTagsRoutes from './routes/newTags';
+import syncRoutes from './routes/sync';
+import { initCron } from './services/cronScheduler';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -33,6 +35,10 @@ app.use('/api/export', exportRoutes);
 app.use('/api/abc', abcRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/new-tags', newTagsRoutes);
+app.use('/api/sync', syncRoutes);
+
+// Init cron scheduler for ZSBMS sync
+initCron();
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

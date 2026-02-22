@@ -18,6 +18,10 @@ import type {
   InsightsGenerateRequest,
   InsightsGenerateResponse,
   InsightsHistoryEntry,
+  SyncSettings,
+  SyncStatusResponse,
+  SyncTriggerResponse,
+  SyncLogEntry,
 } from '@/types';
 
 const API_BASE = '/api';
@@ -355,4 +359,37 @@ export async function markPageSeen(pagePath: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({ pagePath }),
   });
+}
+
+// ── ZSBMS Sync ──
+
+export async function fetchSyncSettings(): Promise<SyncSettings> {
+  return request<SyncSettings>('/sync/settings');
+}
+
+export async function saveSyncSettings(data: {
+  username?: string;
+  password?: string;
+  auto_sync_enabled?: boolean;
+  cron_expression?: string;
+}): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('/sync/settings', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function triggerSync(): Promise<SyncTriggerResponse> {
+  return request<SyncTriggerResponse>('/sync/trigger', {
+    method: 'POST',
+  });
+}
+
+export async function fetchSyncStatus(): Promise<SyncStatusResponse> {
+  return request<SyncStatusResponse>('/sync/status');
+}
+
+export async function fetchSyncHistory(limit?: number): Promise<SyncLogEntry[]> {
+  const query = limit ? `?limit=${limit}` : '';
+  return request<SyncLogEntry[]>(`/sync/history${query}`);
 }

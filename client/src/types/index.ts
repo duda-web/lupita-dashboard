@@ -416,6 +416,40 @@ export interface HourlyHeatmapData {
   avg_revenue: number;
 }
 
+// ── ZSBMS Sync ──
+
+export interface SyncSettings {
+  zsbms_username: string;
+  has_password: boolean;
+  auto_sync_enabled: boolean;
+  cron_expression: string;
+}
+
+export interface SyncLogEntry {
+  id: number;
+  status: 'running' | 'success' | 'partial' | 'failed';
+  trigger_type: 'manual' | 'cron';
+  started_at: string;
+  finished_at: string | null;
+  reports_succeeded: number;
+  reports_failed: number;
+  total_inserted: number;
+  total_updated: number;
+  details: string | null;
+  error: string | null;
+}
+
+export interface SyncStatusResponse {
+  running: boolean;
+  currentSyncId: number | null;
+  latest: SyncLogEntry | null;
+}
+
+export interface SyncTriggerResponse {
+  ok: boolean;
+  syncId: number;
+}
+
 // Matrix labels, colors, and Tailwind classes for 9 dual-dimension classes
 export const ABC_MATRIX_LABELS: Record<string, {
   label: string;

@@ -166,3 +166,30 @@ CREATE TABLE IF NOT EXISTS user_page_views (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_page_views_user ON user_page_views(user_id);
+
+-- ZSBMS Sync settings (singleton — one row with credentials and config)
+CREATE TABLE IF NOT EXISTS sync_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  zsbms_username TEXT,
+  zsbms_password_encrypted TEXT,
+  auto_sync_enabled BOOLEAN NOT NULL DEFAULT 0,
+  cron_expression TEXT NOT NULL DEFAULT '0 7 * * 1',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ZSBMS Sync log (history of each sync run)
+CREATE TABLE IF NOT EXISTS sync_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  status TEXT NOT NULL DEFAULT 'running',
+  trigger_type TEXT NOT NULL DEFAULT 'manual',
+  started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  finished_at TEXT,
+  reports_succeeded INTEGER DEFAULT 0,
+  reports_failed INTEGER DEFAULT 0,
+  total_inserted INTEGER DEFAULT 0,
+  total_updated INTEGER DEFAULT 0,
+  details TEXT,
+  error TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_log_started ON sync_log(started_at);

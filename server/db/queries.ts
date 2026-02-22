@@ -121,6 +121,46 @@ export function initDb(): void {
     `);
   }
 
+  // Add sync_settings table if missing
+  const syncSettingsTbl = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='sync_settings'"
+  ).get();
+  if (!syncSettingsTbl) {
+    database.exec(`
+      CREATE TABLE sync_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        zsbms_username TEXT,
+        zsbms_password_encrypted TEXT,
+        auto_sync_enabled BOOLEAN NOT NULL DEFAULT 0,
+        cron_expression TEXT NOT NULL DEFAULT '0 7 * * 1',
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+  }
+
+  // Add sync_log table if missing
+  const syncLogTbl = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='sync_log'"
+  ).get();
+  if (!syncLogTbl) {
+    database.exec(`
+      CREATE TABLE sync_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        status TEXT NOT NULL DEFAULT 'running',
+        trigger_type TEXT NOT NULL DEFAULT 'manual',
+        started_at TEXT NOT NULL DEFAULT (datetime('now')),
+        finished_at TEXT,
+        reports_succeeded INTEGER DEFAULT 0,
+        reports_failed INTEGER DEFAULT 0,
+        total_inserted INTEGER DEFAULT 0,
+        total_updated INTEGER DEFAULT 0,
+        details TEXT,
+        error TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_sync_log_started ON sync_log(started_at);
+    `);
+  }
+
   // Sync page updates config to database
   syncPageUpdates();
 }
@@ -2008,4 +2048,85 @@ export function markPageViewed(userId: number, pagePath: string): void {
     ON CONFLICT(user_id, page_path) DO UPDATE SET
       viewed_at = datetime('now')
   `).run(userId, pagePath);
+}
+
+// ─── ZSBMS Sync Settings & Log ───
+
+export function getSyncSettings(): any {
+  return getDb().prepare('SELECT * FROM sync_settings WHERE id = 1').get() || null;
+}
+
+export function upsertSyncSettings(data: {
+  zsbms_username?: string;
+  zsbms_password_encrypted?: string;
+  auto_sync_enabled?: boolean;
+  cron_expression?: string;
+}): void {
+  const database = getDb();
+  const existing = database.prepare('SELECT id FROM sync_settings WHERE id = 1').get();
+
+  if (existing) {
+    const sets: string[] = [];
+    const args: any[] = [];
+    if (data.zsbms_username !== undefined) { sets.push('zsbms_username = ?'); args.push(data.zsbms_username); }
+    if (data.zsbms_password_encrypted !== undefined) { sets.push('zsbms_password_encrypted = ?'); args.push(data.zsbms_password_encrypted); }
+    if (data.auto_sync_enabled !== undefined) { sets.push('auto_sync_enabled = ?'); args.push(data.auto_sync_enabled ? 1 : 0); }
+    if (data.cron_expression !== undefined) { sets.push('cron_expression = ?'); args.push(data.cron_expression); }
+    sets.push("updated_at = datetime('now')");
+    database.prepare(`UPDATE sync_settings SET ${sets.join(', ')} WHERE id = 1`).run(...args);
+  } else {
+    database.prepare(`
+      INSERT INTO sync_settings (id, zsbms_username, zsbms_password_encrypted, auto_sync_enabled, cron_expression)
+      VALUES (1, ?, ?, ?, ?)
+    `).run(
+      data.zsbms_username || null,
+      data.zsbms_password_encrypted || null,
+      data.auto_sync_enabled ? 1 : 0,
+      data.cron_expression || '0 7 * * 1',
+    );
+  }
+}
+
+export function createSyncLog(triggerType: 'manual' | 'cron'): number {
+  const result = getDb().prepare(`
+    INSERT INTO sync_log (status, trigger_type, started_at)
+    VALUES ('running', ?, datetime('now'))
+  `).run(triggerType);
+  return result.lastInsertRowid as number;
+}
+
+export function updateSyncLog(id: number, data: {
+  status: 'success' | 'partial' | 'failed';
+  reports_succeeded?: number;
+  reports_failed?: number;
+  total_inserted?: number;
+  total_updated?: number;
+  details?: string;
+  error?: string;
+}): void {
+  getDb().prepare(`
+    UPDATE sync_log SET
+      status = ?, finished_at = datetime('now'),
+      reports_succeeded = ?, reports_failed = ?,
+      total_inserted = ?, total_updated = ?,
+      details = ?, error = ?
+    WHERE id = ?
+  `).run(
+    data.status,
+    data.reports_succeeded || 0,
+    data.reports_failed || 0,
+    data.total_inserted || 0,
+    data.total_updated || 0,
+    data.details || null,
+    data.error || null,
+    id,
+  );
+}
+
+export function getSyncHistory(limit: number = 20): any[] {
+  return getDb().prepare('SELECT * FROM sync_log ORDER BY started_at DESC LIMIT ?').all(limit);
+}
+
+export function getLatestSync(): any {
+  return getDb().prepare('SELECT * FROM sync_log ORDER BY started_at DESC LIMIT 1').get() || null;
 }

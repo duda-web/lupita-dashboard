@@ -11,6 +11,7 @@ import { ABCPage } from '@/pages/ABCPage';
 import { InsightsPage } from '@/pages/InsightsPage';
 import { HourlyPage } from '@/pages/HourlyPage';
 import { InstrucoesPage } from '@/pages/InstrucoesPage';
+import { SyncPage } from '@/pages/SyncPage';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/insights" element={<InsightsPage />} />
             <Route path="/hourly" element={<HourlyPage />} />
             <Route path="/instrucoes" element={<InstrucoesPage />} />
+            <Route path="/sync" element={<SyncPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

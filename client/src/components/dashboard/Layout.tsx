@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useNewTags } from '@/hooks/useNewTags';
-import { LayoutDashboard, Upload, LogOut, Menu, X, Sun, Moon, ShoppingBag, BarChart3, Sparkles, Clock, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Upload, LogOut, Menu, X, Sun, Moon, ShoppingBag, BarChart3, Sparkles, Clock, BookOpen, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LupitaLogo } from './LupitaLogo';
 
@@ -62,8 +62,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      {/* Instruções */}
-      <div className="px-3 pb-2 border-t border-border pt-3">
+      {/* Instruções + Sync (admin) */}
+      <div className="px-3 pb-2 border-t border-border pt-3 space-y-1">
         <NavLink
           to="/instrucoes"
           onClick={() => setSidebarOpen(false)}
@@ -83,6 +83,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )}
           </span>
         </NavLink>
+
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/sync"
+            onClick={() => setSidebarOpen(false)}
+            className={({ isActive }) =>
+              `flex items-center gap-1.5 px-2.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-lupita-amber/10 text-lupita-amber'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`
+            }
+          >
+            <RefreshCw className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1 min-w-0 whitespace-nowrap">
+              Sincronização
+              {isNew('/sync') && (
+                <span className="inline-flex align-middle ml-1 text-[6px] font-bold uppercase text-lupita-amber bg-lupita-amber/10 border border-lupita-amber/25 rounded-sm px-[3px] py-[1px] leading-none">new</span>
+              )}
+            </span>
+          </NavLink>
+        )}
       </div>
 
       <div className="p-4 border-t border-border">
