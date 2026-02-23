@@ -25,8 +25,12 @@ import {
   startOfWeek,
   endOfWeek,
   subWeeks,
+  subMonths,
+  subYears,
   startOfMonth,
+  endOfMonth,
   startOfYear,
+  endOfYear,
   format,
   lastDayOfMonth,
 } from 'date-fns';
@@ -64,11 +68,25 @@ function calculateDateRange(
         dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'),
         dateTo: effectiveDateTo,
       };
+    case 'last_month': {
+      const lm = subMonths(now, 1);
+      return {
+        dateFrom: format(startOfMonth(lm), 'yyyy-MM-dd'),
+        dateTo: format(endOfMonth(lm), 'yyyy-MM-dd'),
+      };
+    }
     case 'year':
       return {
         dateFrom: format(startOfYear(now), 'yyyy-MM-dd'),
         dateTo: effectiveDateTo,
       };
+    case 'last_year': {
+      const ly = subYears(now, 1);
+      return {
+        dateFrom: format(startOfYear(ly), 'yyyy-MM-dd'),
+        dateTo: format(endOfYear(ly), 'yyyy-MM-dd'),
+      };
+    }
     case 'custom':
       if (!dateFrom || !dateTo) throw new Error('dateFrom e dateTo obrigatórios para período personalizado');
       return { dateFrom, dateTo };
@@ -80,8 +98,10 @@ function calculateDateRange(
 function getComparisonTypeForPeriod(period: string): 'wow' | 'mom' | 'yoy' {
   switch (period) {
     case 'week': return 'wow';
-    case 'month': return 'mom';
-    case 'year': return 'yoy';
+    case 'month':
+    case 'last_month': return 'mom';
+    case 'year':
+    case 'last_year': return 'yoy';
     default: return 'mom';
   }
 }
@@ -101,8 +121,8 @@ router.post('/generate', async (req: Request, res: Response) => {
   try {
     const { period, dateFrom: customFrom, dateTo: customTo, storeId, channel } = req.body;
 
-    if (!period || !['week', 'month', 'year', 'custom'].includes(period)) {
-      res.status(400).json({ error: 'period obrigatório: week | month | year | custom' });
+    if (!period || !['week', 'month', 'last_month', 'year', 'last_year', 'custom'].includes(period)) {
+      res.status(400).json({ error: 'period obrigatório: week | month | last_month | year | last_year | custom' });
       return;
     }
 
@@ -128,7 +148,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     const { dateFrom, dateTo } = range;
     const compType = getComparisonTypeForPeriod(period);
     const prevPeriod = getComparisonPeriod(dateFrom, dateTo, compType);
-    const includeABC = period === 'month' || period === 'year';
+    const includeABC = ['month', 'last_month', 'year', 'last_year'].includes(period);
     const includeProjection = period === 'month';
     const effectiveChannel = channel || 'all';
 
@@ -277,9 +297,11 @@ router.post('/generate', async (req: Request, res: Response) => {
     // 5. Build payload
     const compLabel = compType === 'wow' ? 'semana anterior' : compType === 'mom' ? 'mês anterior' : 'ano anterior';
     const periodLabel =
-      period === 'week' ? 'Esta Semana' :
+      period === 'week' ? 'Semana Passada' :
       period === 'month' ? 'Este Mês' :
-      period === 'year' ? 'Este Ano' : 'Personalizado';
+      period === 'last_month' ? 'Mês Passado' :
+      period === 'year' ? 'Este Ano' :
+      period === 'last_year' ? 'Ano Passado' : 'Personalizado';
 
     const dataPayload: any = {
       context: {

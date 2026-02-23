@@ -364,7 +364,7 @@ export interface ABCInsightsResponse {
 
 // ── Comprehensive Insights IA ──
 
-export type InsightsPeriod = 'week' | 'month' | 'year' | 'custom';
+export type InsightsPeriod = 'week' | 'month' | 'last_month' | 'year' | 'last_year' | 'custom';
 export type InsightsChannel = 'all' | 'loja' | 'delivery';
 
 export interface InsightsGenerateRequest {

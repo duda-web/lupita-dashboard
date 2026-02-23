@@ -5,13 +5,14 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { generateInsights, fetchLastSalesDate } from '@/lib/api';
 import type { InsightsPeriod, InsightsChannel, InsightsGenerateResponse } from '@/types';
 import { Sparkles, Store, Truck, LayoutGrid, Calendar } from 'lucide-react';
-import { format, parse, startOfWeek, endOfWeek, subWeeks, startOfMonth, startOfYear, isValid } from 'date-fns';
+import { format, parse, startOfWeek, endOfWeek, subWeeks, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, endOfYear, isValid } from 'date-fns';
 
-const PERIOD_TABS: { value: InsightsPeriod; label: string; hasABC: boolean }[] = [
-  { value: 'week', label: 'Semana Passada', hasABC: false },
-  { value: 'month', label: 'Este Mes', hasABC: true },
-  { value: 'year', label: 'Este Ano', hasABC: true },
-  { value: 'custom', label: 'Personalizado', hasABC: true },
+const PERIOD_TABS: { value: InsightsPeriod; label: string }[] = [
+  { value: 'week', label: 'Semana passada' },
+  { value: 'month', label: 'Este mês' },
+  { value: 'last_month', label: 'Mês passado' },
+  { value: 'year', label: 'Este ano' },
+  { value: 'last_year', label: 'Ano passado' },
 ];
 
 const CHANNEL_OPTIONS: { value: InsightsChannel; label: string; icon: typeof LayoutGrid }[] = [
@@ -43,8 +44,22 @@ function computeDatesForPeriod(
     }
     case 'month':
       return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: endStr };
+    case 'last_month': {
+      const lm = subMonths(now, 1);
+      return {
+        dateFrom: format(startOfMonth(lm), 'yyyy-MM-dd'),
+        dateTo: format(endOfMonth(lm), 'yyyy-MM-dd'),
+      };
+    }
     case 'year':
       return { dateFrom: format(startOfYear(now), 'yyyy-MM-dd'), dateTo: endStr };
+    case 'last_year': {
+      const ly = subYears(now, 1);
+      return {
+        dateFrom: format(startOfYear(ly), 'yyyy-MM-dd'),
+        dateTo: format(endOfYear(ly), 'yyyy-MM-dd'),
+      };
+    }
     default:
       return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: endStr };
   }
@@ -190,7 +205,7 @@ export function InsightsPage() {
             </div>
           </div>
 
-          {/* Filters row 2: Period pills + Histórico + Generate (matches quick filter row) */}
+          {/* Filters row 2: Period pills + Histórico & Generate (matches quick filter row) */}
           <div className="flex flex-wrap items-center gap-2 mt-3">
             {PERIOD_TABS.map((tab) => (
               <button
@@ -203,25 +218,21 @@ export function InsightsPage() {
                 }`}
               >
                 {tab.label}
-                {tab.hasABC && period !== tab.value && (
-                  <span className="ml-1 text-[9px] opacity-60">+ABC</span>
-                )}
               </button>
             ))}
 
-            <div className="h-6 w-px bg-border mx-1" />
-
-            <InsightsHistory onLoadInsight={handleLoadFromHistory} />
-
-            {/* Generate button */}
-            <button
-              onClick={handleGenerate}
-              disabled={isLoading || !canGenerate}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-lupita-amber text-white text-xs font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {insightsData?.insights ? 'Regenerar' : 'Gerar Insights'}
-            </button>
+            {/* Histórico + Generate grouped together on the right */}
+            <div className="flex items-center gap-2 ml-auto">
+              <InsightsHistory onLoadInsight={handleLoadFromHistory} />
+              <button
+                onClick={handleGenerate}
+                disabled={isLoading || !canGenerate}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-lupita-amber text-white text-xs font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {insightsData?.insights ? 'Regenerar' : 'Gerar Insights'}
+              </button>
+            </div>
           </div>
         </div>
 
