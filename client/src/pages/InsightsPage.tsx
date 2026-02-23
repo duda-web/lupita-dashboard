@@ -4,7 +4,7 @@ import { InsightsHistory } from '@/components/insights/InsightsHistory';
 import { DatePicker } from '@/components/ui/date-picker';
 import { generateInsights, fetchLastSalesDate } from '@/lib/api';
 import type { InsightsPeriod, InsightsChannel, InsightsGenerateResponse } from '@/types';
-import { Sparkles, Store, Radio, Calendar } from 'lucide-react';
+import { Sparkles, Store, Truck, LayoutGrid, Calendar } from 'lucide-react';
 import { format, parse, startOfWeek, endOfWeek, subWeeks, startOfMonth, startOfYear, isValid } from 'date-fns';
 
 const PERIOD_TABS: { value: InsightsPeriod; label: string; hasABC: boolean }[] = [
@@ -14,10 +14,10 @@ const PERIOD_TABS: { value: InsightsPeriod; label: string; hasABC: boolean }[] =
   { value: 'custom', label: 'Personalizado', hasABC: true },
 ];
 
-const CHANNEL_OPTIONS: { value: InsightsChannel; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'loja', label: 'Restaurante' },
-  { value: 'delivery', label: 'Delivery' },
+const CHANNEL_OPTIONS: { value: InsightsChannel; label: string; icon: typeof LayoutGrid }[] = [
+  { value: 'all', label: 'Todos', icon: LayoutGrid },
+  { value: 'loja', label: 'Restaurante', icon: Store },
+  { value: 'delivery', label: 'Delivery', icon: Truck },
 ];
 
 function getDefaultCustomDates(lastSalesDate?: string | null) {
@@ -122,26 +122,72 @@ export function InsightsPage() {
 
   return (
     <div className="space-y-4">
-        {/* Sticky header */}
+        {/* Sticky header + filters */}
         <div className="sticky top-14 md:top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 pt-2 pb-3 sticky-header-bg border-b border-border">
           {/* Header */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-lupita-amber" />
-              <h1 className="text-xl font-bold text-foreground">Insights AI</h1>
-            </div>
-            <InsightsHistory onLoadInsight={handleLoadFromHistory} />
+          <div className="flex items-center gap-3 mb-2">
+            <Sparkles className="h-5 w-5 text-lupita-amber" />
+            <h1 className="text-xl font-bold text-foreground">Insights AI</h1>
           </div>
 
-          {/* Period tabs */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
+          {/* Filters row 1: Store + Channel + Custom dates (matches Artigos/ABC layout) */}
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            {/* Store filter */}
+            <div className="flex items-center gap-2">
+              <Store className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={storeId || ''}
+                onChange={(e) => setStoreId(e.target.value || undefined)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Todas as lojas</option>
+                <option value="cais_do_sodre">Cais do Sodré</option>
+                <option value="alvalade">Alvalade</option>
+              </select>
+            </div>
+
+            {/* Channel filter (grouped container like Artigos/ABC) */}
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+              {CHANNEL_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const isActive = channel === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setChannel(opt.value)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-lupita-amber text-white shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom date pickers (only when period === 'custom') */}
+            {period === 'custom' && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <DatePicker value={customDateFrom} onChange={setCustomDateFrom} />
+                <span className="text-sm text-muted-foreground">até</span>
+                <DatePicker value={customDateTo} onChange={setCustomDateTo} />
+              </div>
+            )}
+          </div>
+
+          {/* Filters row 2: Period pills + Generate + Histórico (matches quick filter row) */}
+          <div className="flex flex-wrap items-center gap-2">
             {PERIOD_TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setPeriod(tab.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   period === tab.value
-                    ? 'bg-lupita-amber text-white shadow-sm'
+                    ? 'bg-lupita-amber text-white'
                     : 'border border-border bg-card text-muted-foreground hover:text-foreground hover:border-lupita-amber/50'
                 }`}
               >
@@ -156,57 +202,16 @@ export function InsightsPage() {
                 {getPeriodDescription()}
               </span>
             )}
-          </div>
 
-          {/* Custom date pickers (only shown when period === 'custom') */}
-          {period === 'custom' && (
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-              <DatePicker value={customDateFrom} onChange={setCustomDateFrom} />
-              <span className="text-xs text-muted-foreground">ate</span>
-              <DatePicker value={customDateTo} onChange={setCustomDateTo} />
-            </div>
-          )}
+            <div className="h-6 w-px bg-border mx-1" />
 
-          {/* Store + Channel filters + Generate button */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Store filter */}
-            <div className="flex items-center gap-1.5">
-              <Store className="h-3.5 w-3.5 text-muted-foreground" />
-              <select
-                value={storeId || ''}
-                onChange={(e) => setStoreId(e.target.value || undefined)}
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Todas as lojas</option>
-                <option value="cais_do_sodre">Cais do Sodre</option>
-                <option value="alvalade">Alvalade</option>
-              </select>
-            </div>
-
-            {/* Channel filter */}
-            <div className="flex items-center gap-1">
-              <Radio className="h-3.5 w-3.5 text-muted-foreground mr-1" />
-              {CHANNEL_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setChannel(opt.value)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                    channel === opt.value
-                      ? 'bg-lupita-amber text-white'
-                      : 'border border-border bg-card text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <InsightsHistory onLoadInsight={handleLoadFromHistory} />
 
             {/* Generate button */}
             <button
               onClick={handleGenerate}
               disabled={isLoading || !canGenerate}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-lupita-amber text-white text-xs font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ml-auto"
+              className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-lupita-amber text-white text-xs font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
             >
               <Sparkles className="h-3.5 w-3.5" />
               {insightsData?.insights ? 'Regenerar' : 'Gerar Insights'}
