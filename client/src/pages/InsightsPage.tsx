@@ -124,8 +124,8 @@ export function InsightsPage() {
     <div className="space-y-4">
         {/* Sticky header */}
         <div className="sticky top-14 md:top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 pt-2 pb-3 sticky-header-bg border-b border-border">
-          {/* Title row */}
-          <div className="flex items-center justify-between mb-3">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-lupita-amber" />
               <h1 className="text-xl font-bold text-foreground">Insights AI</h1>
