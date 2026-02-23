@@ -22,6 +22,7 @@ import type {
   SyncStatusResponse,
   SyncTriggerResponse,
   SyncLogEntry,
+  ReportRegistryResponse,
 } from '@/types';
 
 const API_BASE = '/api';
@@ -359,6 +360,12 @@ export async function markPageSeen(pagePath: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({ pagePath }),
   });
+}
+
+// ── Report Registry ──
+
+export async function fetchReportRegistry(): Promise<ReportRegistryResponse> {
+  return request<ReportRegistryResponse>('/reports/registry');
 }
 
 // ── ZSBMS Sync ──

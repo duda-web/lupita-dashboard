@@ -14,6 +14,7 @@ import abcRoutes from './routes/abc';
 import insightsRoutes from './routes/insights';
 import newTagsRoutes from './routes/newTags';
 import syncRoutes from './routes/sync';
+import reportRoutes from './routes/reports';
 import { initCron } from './services/cronScheduler';
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/abc', abcRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/new-tags', newTagsRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Init cron scheduler for ZSBMS sync
 initCron();

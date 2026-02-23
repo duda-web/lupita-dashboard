@@ -1,8 +1,8 @@
 /**
  * ZSBMS PRO Automated Report Exporter
  *
- * Downloads the 5 required XLSX reports from ZSBMS PRO via its internal API.
- * Each report has specific form parameters verified by inspecting the actual DOM.
+ * Downloads XLSX reports from ZSBMS PRO via its internal API.
+ * Report definitions come from the central reportRegistry.
  *
  * API discovered by reverse-engineering the ZSBMS PRO web portal:
  *   - Backend: Django (v8.1.04.28)
@@ -15,6 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { REPORT_REGISTRY, REPORT_BY_KEY, type ReportKey } from '../reportRegistry';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -26,17 +27,6 @@ const STORES = {
   alvalade: '35',
   cais_do_sodre: '2',
 };
-
-// Report IDs mapped from the ZSBMS PRO sidebar
-const REPORTS = {
-  full_clearance: { id: '48', name: 'Vendas_Completo' },
-  zones: { id: '46', name: 'Zonas' },
-  items: { id: '49', name: 'Artigos' },
-  abc_analysis: { id: '9', name: 'ABC_Vendas' },
-  hourly_totals: { id: '70', name: 'Totais_Hora' },
-} as const;
-
-type ReportKey = keyof typeof REPORTS;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -145,22 +135,19 @@ function extractCookies(response: Response): Record<string, string> {
 
 /**
  * Build form data for a specific report.
- * Each report has verified parameters from DOM inspection.
+ * Report-specific parameters come from the registry's formParams.
  *
  * Common fields (all reports):
  *   csrfmiddlewaretoken, date_range, store_type='', stores=[35,2], export_type=xls, extra_info=''
- *
- * Report-specific:
- *   Full (48) & Zones (46): group_by_dates=1, group_by_stores=1
- *   Items (49): group_by_dates=1, group_by_stores=1, extension_model=ITEMS
- *   ABC (9): group_by_dates=1, group_by_stores=1, extension_model=ITEMS
- *   Hourly (70): group_by_dates=1, group_by_stores_zones=3, options=2
  */
 function buildFormData(
   session: ZsbmsSession,
   reportKey: ReportKey,
   options: ExportOptions,
 ): URLSearchParams {
+  const report = REPORT_BY_KEY.get(reportKey);
+  if (!report) throw new Error(`Unknown report key: ${reportKey}`);
+
   const storeIds = options.storeIds || [STORES.alvalade, STORES.cais_do_sodre];
   const dateRange = `${options.dateFrom}   -   ${options.dateTo}`;
 
@@ -175,36 +162,9 @@ function buildFormData(
     formData.append('stores', storeId);
   }
 
-  // Report-specific parameters
-  switch (reportKey) {
-    case 'full_clearance':
-    case 'zones':
-      // Base fields + group_by_stores
-      formData.append('group_by_stores', '1');
-      break;
-
-    case 'items':
-      // Base + group_by_stores + extension_model=ITEMS
-      // families, groups, items: NOT sent (empty = all)
-      // pivot_view: NOT sent (OFF)
-      formData.append('group_by_stores', '1');
-      formData.append('extension_model', 'ITEMS');
-      break;
-
-    case 'abc_analysis':
-      // Base + group_by_stores + extension_model=ITEMS
-      // families, groups, items: NOT sent (empty = all)
-      formData.append('group_by_stores', '1');
-      formData.append('extension_model', 'ITEMS');
-      break;
-
-    case 'hourly_totals':
-      // NO group_by_stores — uses group_by_stores_zones instead
-      // group_by_stores_zones: 0=none, 1=Store, 2=Zone, 3=Store and Zone
-      // options: 1=1hour, 2=30min, 3=15min
-      formData.append('group_by_stores_zones', '3'); // Store and Zone
-      formData.append('options', '2'); // 30min intervals
-      break;
+  // Report-specific parameters from registry (data-driven, no switch)
+  for (const [param, value] of Object.entries(report.formParams)) {
+    formData.append(param, value);
   }
 
   formData.append('export_type', 'xls');
@@ -223,8 +183,8 @@ async function exportReport(
   reportKey: ReportKey,
   options: ExportOptions,
 ): Promise<Buffer> {
-  const report = REPORTS[reportKey];
-  const url = `${ZSBMS_BASE_URL}/reports/${report.id}/print/`;
+  const report = REPORT_BY_KEY.get(reportKey)!;
+  const url = `${ZSBMS_BASE_URL}/reports/${report.zsbmsId}/print/`;
   const formData = buildFormData(session, reportKey, options);
 
   const response = await fetch(url, {
@@ -232,14 +192,14 @@ async function exportReport(
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': `sessionid=${session.sessionId}; csrftoken=${session.csrfToken}`,
-      'Referer': `${ZSBMS_BASE_URL}/reports/${report.id}/`,
+      'Referer': `${ZSBMS_BASE_URL}/reports/${report.zsbmsId}/`,
       'User-Agent': 'LupitaDashboard/1.0',
     },
     body: formData.toString(),
   });
 
   if (!response.ok) {
-    throw new Error(`Export failed for report ${report.id} (${reportKey}): HTTP ${response.status}`);
+    throw new Error(`Export failed for report ${report.zsbmsId} (${reportKey}): HTTP ${response.status}`);
   }
 
   const contentType = response.headers.get('content-type') || '';
@@ -255,7 +215,7 @@ async function exportReport(
 // ─── Main Export Pipeline ────────────────────────────────────────────────────
 
 /**
- * Export all 5 reports for a given date range.
+ * Export all reports defined in the registry for a given date range.
  *
  * @param credentials - ZSBMS PRO login credentials
  * @param options - Date range and filters
@@ -277,38 +237,37 @@ export async function exportAllReports(
   const session = await login(credentials);
 
   const results: ExportResult[] = [];
-  const reportEntries = Object.entries(REPORTS) as [ReportKey, typeof REPORTS[ReportKey]][];
 
-  for (const [key, report] of reportEntries) {
-    const fileName = `${report.name}_${options.dateFrom}_${options.dateTo}.xlsx`;
+  for (const report of REPORT_REGISTRY) {
+    const fileName = `${report.exportFileName}_${options.dateFrom}_${options.dateTo}.xlsx`;
     const filePath = path.join(outputDir, fileName);
 
-    console.log(`[ZSBMS] Exporting ${report.name} (report ${report.id}, key=${key})...`);
+    console.log(`[ZSBMS] Exporting ${report.exportFileName} (report ${report.zsbmsId}, key=${report.key})...`);
 
     try {
-      const buffer = await exportReport(session, key, options);
+      const buffer = await exportReport(session, report.key, options);
       fs.writeFileSync(filePath, buffer);
 
       const result: ExportResult = {
-        reportName: report.name,
-        reportKey: key,
+        reportName: report.exportFileName,
+        reportKey: report.key,
         filePath,
         size: buffer.length,
         success: true,
       };
       results.push(result);
-      console.log(`[ZSBMS] ✓ ${report.name}: ${(buffer.length / 1024).toFixed(1)} KB`);
+      console.log(`[ZSBMS] ✓ ${report.exportFileName}: ${(buffer.length / 1024).toFixed(1)} KB`);
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       results.push({
-        reportName: report.name,
-        reportKey: key,
+        reportName: report.exportFileName,
+        reportKey: report.key,
         filePath,
         size: 0,
         success: false,
         error: errMsg,
       });
-      console.error(`[ZSBMS] ✗ ${report.name}: ${errMsg}`);
+      console.error(`[ZSBMS] ✗ ${report.exportFileName}: ${errMsg}`);
     }
 
     // Small delay between requests to be respectful
@@ -350,8 +309,8 @@ export async function exportThisYear(
 
 // ─── Exports for sync service ────────────────────────────────────────────────
 
-export { login, extractCookies, REPORTS, STORES };
-export type { ZsbmsCredentials, ZsbmsSession, ExportOptions, ExportResult, ReportKey };
+export { login, extractCookies, STORES };
+export type { ZsbmsCredentials, ZsbmsSession, ExportOptions, ExportResult };
 
 // ─── CLI Entry Point ─────────────────────────────────────────────────────────
 

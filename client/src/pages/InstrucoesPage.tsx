@@ -1,54 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CheckSquare, Info } from 'lucide-react';
+import { CheckSquare, Info, Loader2 } from 'lucide-react';
 import { APP_VERSION, APP_VERSION_DATE } from '@/lib/version';
-
-interface Step {
-  title: string;
-  path: string;
-  periods: string[];
-  extraRules?: string[];
-}
-
-const steps: Step[] = [
-  {
-    title: 'Vendas Completo',
-    path: 'Relatórios > Vendas > Apuramentos > Completo',
-    periods: ['Este Ano'],
-  },
-  {
-    title: 'Zonas (Canais de Venda)',
-    path: 'Relatórios > Vendas > Apuramentos > Zonas',
-    periods: ['Este Ano'],
-  },
-  {
-    title: 'Artigos',
-    path: 'Relatórios > Vendas > Apuramentos > Artigos',
-    periods: ['Este Ano'],
-  },
-  {
-    title: 'Análise ABC',
-    path: 'Relatórios > Vendas > Rankings > Análise ABC Vendas',
-    periods: ['Este Ano'],
-  },
-  {
-    title: 'Totais Apurados por Hora',
-    path: 'Relatórios > Vendas > Horárias > Totais Apurados',
-    periods: ['Este Ano'],
-    extraRules: [
-      'Agrupar por Data',
-      'Agrupar por Loja e Zona',
-      'Retirar LUPITA SEDE em Lojas',
-      'Período: 30 minutos',
-    ],
-  },
-];
-
-const commonRules = [
-  'Agrupar por Data',
-  'Agrupar por Loja',
-  'Retirar LUPITA SEDE em Lojas',
-];
+import { fetchReportRegistry } from '@/lib/api';
+import type { ReportDisplayInfo } from '@/types';
 
 const STORAGE_KEY = 'lupita-instrucoes-checked';
 
@@ -61,7 +16,22 @@ function loadChecked(): Record<string, boolean> {
 }
 
 export function InstrucoesPage() {
+  const [reports, setReports] = useState<ReportDisplayInfo[]>([]);
+  const [commonRules, setCommonRules] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [checked, setChecked] = useState<Record<string, boolean>>(loadChecked);
+
+  useEffect(() => {
+    fetchReportRegistry()
+      .then((data) => {
+        setReports(data.reports);
+        setCommonRules(data.commonRules);
+      })
+      .catch((err) => {
+        console.error('Failed to load report registry:', err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const toggle = useCallback((key: string) => {
     setChecked((prev) => {
@@ -73,17 +43,25 @@ export function InstrucoesPage() {
 
   const checkAll = useCallback(() => {
     const next: Record<string, boolean> = {};
-    steps.forEach((step, i) => {
-      step.periods.forEach((p) => { next[`${i}-${p}`] = true; });
+    reports.forEach((report, i) => {
+      report.periods.forEach((p) => { next[`${i}-${p}`] = true; });
     });
     setChecked(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
+  }, [reports]);
 
   const uncheckAll = useCallback(() => {
     setChecked({});
     localStorage.setItem(STORAGE_KEY, JSON.stringify({}));
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -172,11 +150,11 @@ export function InstrucoesPage() {
             </div>
           </div>
           <div className="space-y-4">
-            {steps.map((step, i) => {
-              const allChecked = step.periods.every((p) => checked[`${i}-${p}`]);
+            {reports.map((report, i) => {
+              const allChecked = report.periods.every((p) => checked[`${i}-${p}`]);
               return (
                 <motion.div
-                  key={step.title}
+                  key={report.key}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: i * 0.05 }}
@@ -197,15 +175,15 @@ export function InstrucoesPage() {
                     <div className="flex-1">
                       <h3 className={`text-sm font-semibold mb-1 transition-colors ${
                         allChecked ? 'text-muted-foreground line-through' : 'text-foreground'
-                      }`}>{step.title}</h3>
+                      }`}>{report.title}</h3>
                       <p className={`text-xs font-mono bg-muted/50 rounded px-2 py-1 inline-block mb-3 transition-colors ${
                         allChecked ? 'text-muted-foreground/50 line-through' : 'text-muted-foreground'
                       }`}>
-                        {step.path}
+                        {report.zsbmsPath}
                       </p>
 
                       <div className="space-y-2">
-                        {step.periods.map((period) => {
+                        {report.periods.map((period) => {
                           const key = `${i}-${period}`;
                           const isChecked = !!checked[key];
                           return (
@@ -227,10 +205,10 @@ export function InstrucoesPage() {
                         })}
                       </div>
 
-                      {/* Extra rules specific to this step */}
-                      {step.extraRules && (
+                      {/* Extra rules specific to this report */}
+                      {report.extraRules && report.extraRules.length > 0 && (
                         <div className="mt-3 space-y-1">
-                          {step.extraRules.map((rule) => (
+                          {report.extraRules.map((rule) => (
                             <div key={rule} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                               <CheckSquare className="h-3 w-3 text-lupita-amber flex-shrink-0" />
                               {rule}

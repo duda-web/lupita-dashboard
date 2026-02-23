@@ -425,6 +425,21 @@ export interface SyncSettings {
   cron_expression: string;
 }
 
+// ── Report Registry ──
+
+export interface ReportDisplayInfo {
+  key: string;
+  title: string;
+  zsbmsPath: string;
+  periods: string[];
+  extraRules?: string[];
+}
+
+export interface ReportRegistryResponse {
+  commonRules: string[];
+  reports: ReportDisplayInfo[];
+}
+
 export interface SyncLogEntry {
   id: number;
   status: 'running' | 'success' | 'partial' | 'failed';

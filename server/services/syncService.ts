@@ -14,24 +14,8 @@ import path from 'path';
 import os from 'os';
 import { getSyncSettings, createSyncLog, updateSyncLog } from '../db/queries';
 import { decrypt } from './encryption';
-import { exportAllReports, type ExportResult, type ReportKey } from './zsbmsExporter';
-import {
-  detectFileType,
-  importXlsxFile,
-  importZoneFile,
-  importArticleFile,
-  importABCFile,
-  importHourlyFile,
-} from './importService';
-
-// Map ZSBMS report keys to import function
-const REPORT_IMPORT_MAP: Record<ReportKey, (filePath: string) => any> = {
-  full_clearance: importXlsxFile,
-  zones: importZoneFile,
-  items: importArticleFile,
-  abc_analysis: importABCFile,
-  hourly_totals: importHourlyFile,
-};
+import { exportAllReports, type ExportResult } from './zsbmsExporter';
+import { REPORT_BY_KEY, type ReportKey } from '../reportRegistry';
 
 // Track running sync to prevent concurrent runs
 let currentSyncId: number | null = null;
@@ -118,8 +102,11 @@ async function doSync(syncId: number, username: string, password: string): Promi
 
       try {
         console.log(`[Sync ${syncId}] Importing ${exportResult.reportName}...`);
-        const importFn = REPORT_IMPORT_MAP[exportResult.reportKey];
-        const importResult = importFn(exportResult.filePath);
+        const reportDef = REPORT_BY_KEY.get(exportResult.reportKey as ReportKey);
+        if (!reportDef) {
+          throw new Error(`No import function registered for report: ${exportResult.reportKey}`);
+        }
+        const importResult = reportDef.importFn(exportResult.filePath);
 
         totalInserted += importResult.recordsInserted || 0;
         totalUpdated += importResult.recordsUpdated || 0;
