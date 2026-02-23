@@ -20,14 +20,34 @@ const CHANNEL_OPTIONS: { value: InsightsChannel; label: string; icon: typeof Lay
   { value: 'delivery', label: 'Delivery', icon: Truck },
 ];
 
-function getDefaultCustomDates(lastSalesDate?: string | null) {
+/** Compute the date range for a given period using the real last-sales-date */
+function computeDatesForPeriod(
+  p: InsightsPeriod,
+  lastSalesDate?: string | null,
+) {
   const now = new Date();
-  let endDate = format(now, 'yyyy-MM-dd');
-  if (lastSalesDate) endDate = lastSalesDate;
-  return {
-    dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'),
-    dateTo: endDate,
-  };
+  let endDate = now;
+  if (lastSalesDate) {
+    const parsed = parse(lastSalesDate, 'yyyy-MM-dd', new Date());
+    if (isValid(parsed)) endDate = parsed;
+  }
+  const endStr = format(endDate, 'yyyy-MM-dd');
+
+  switch (p) {
+    case 'week': {
+      const lastWeek = subWeeks(now, 1);
+      return {
+        dateFrom: format(startOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+        dateTo: format(endOfWeek(lastWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+      };
+    }
+    case 'month':
+      return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: endStr };
+    case 'year':
+      return { dateFrom: format(startOfYear(now), 'yyyy-MM-dd'), dateTo: endStr };
+    default:
+      return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: endStr };
+  }
 }
 
 export function InsightsPage() {
@@ -36,22 +56,46 @@ export function InsightsPage() {
   const [storeId, setStoreId] = useState<string | undefined>(undefined);
   const [channel, setChannel] = useState<InsightsChannel>('all');
 
-  const defaults = getDefaultCustomDates();
-  const [customDateFrom, setCustomDateFrom] = useState(defaults.dateFrom);
-  const [customDateTo, setCustomDateTo] = useState(defaults.dateTo);
-
   // Last sales date (fetched from server to show real data cutoff)
   const [lastSalesDate, setLastSalesDate] = useState<string | null>(null);
+
+  // Date pickers — always visible, auto-computed from period
+  const initDates = computeDatesForPeriod('month');
+  const [dateFrom, setDateFrom] = useState(initDates.dateFrom);
+  const [dateTo, setDateTo] = useState(initDates.dateTo);
 
   useEffect(() => {
     fetchLastSalesDate(storeId)
       .then((date) => {
         setLastSalesDate(date);
-        // Also update custom date picker default end date
-        setCustomDateTo(date);
+        // Recompute dates for current period with real end date
+        const d = computeDatesForPeriod(period, date);
+        setDateFrom(d.dateFrom);
+        setDateTo(d.dateTo);
       })
       .catch(() => setLastSalesDate(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
+
+  /** When a period pill is clicked, auto-set dates */
+  const handlePeriodChange = (p: InsightsPeriod) => {
+    setPeriod(p);
+    if (p !== 'custom') {
+      const d = computeDatesForPeriod(p, lastSalesDate);
+      setDateFrom(d.dateFrom);
+      setDateTo(d.dateTo);
+    }
+  };
+
+  /** When dates are changed manually, switch to custom */
+  const handleDateFromChange = (v: string) => {
+    setDateFrom(v);
+    setPeriod('custom');
+  };
+  const handleDateToChange = (v: string) => {
+    setDateTo(v);
+    setPeriod('custom');
+  };
 
   // Insights state
   const [insightsData, setInsightsData] = useState<InsightsGenerateResponse | null>(null);
@@ -65,7 +109,8 @@ export function InsightsPage() {
     try {
       const result = await generateInsights({
         period,
-        ...(period === 'custom' && { dateFrom: customDateFrom, dateTo: customDateTo }),
+        dateFrom,
+        dateTo,
         ...(storeId && { storeId }),
         channel,
       });
@@ -86,39 +131,7 @@ export function InsightsPage() {
     setError(null);
   };
 
-  // Period date range labels — uses real last sales date from server
-  const getPeriodDescription = () => {
-    const now = new Date();
-    // Use the server-provided last sales date, falling back to today
-    let endDate = now;
-    if (lastSalesDate) {
-      const parsed = parse(lastSalesDate, 'yyyy-MM-dd', new Date());
-      if (isValid(parsed)) endDate = parsed;
-    }
-
-    switch (period) {
-      case 'week': {
-        const lastWeek = subWeeks(now, 1);
-        const from = format(startOfWeek(lastWeek, { weekStartsOn: 1 }), 'dd/MM');
-        const to = format(endOfWeek(lastWeek, { weekStartsOn: 1 }), 'dd/MM');
-        return `${from} - ${to} (sem ABC)`;
-      }
-      case 'month': {
-        const from = format(startOfMonth(now), 'dd/MM');
-        const to = format(endDate, 'dd/MM');
-        return `${from} - ${to}`;
-      }
-      case 'year': {
-        const from = format(startOfYear(now), 'dd/MM');
-        const to = format(endDate, 'dd/MM');
-        return `${from} - ${to}`;
-      }
-      default:
-        return '';
-    }
-  };
-
-  const canGenerate = period !== 'custom' || (customDateFrom && customDateTo);
+  const canGenerate = !!(dateFrom && dateTo);
 
   return (
     <div className="space-y-4">
@@ -130,8 +143,16 @@ export function InsightsPage() {
             <h1 className="text-xl font-bold text-foreground">Insights AI</h1>
           </div>
 
-          {/* Filters row 1: Store + Channel + Custom dates (matches Artigos/ABC layout) */}
-          <div className="flex flex-wrap items-center gap-3 mb-3">
+          {/* Filters row 1: Date range + Store + Channel (matches Dashboard/Artigos/ABC) */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Date range — always visible */}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <DatePicker value={dateFrom} onChange={handleDateFromChange} />
+              <span className="text-sm text-muted-foreground">até</span>
+              <DatePicker value={dateTo} onChange={handleDateToChange} />
+            </div>
+
             {/* Store filter */}
             <div className="flex items-center gap-2">
               <Store className="h-4 w-4 text-muted-foreground" />
@@ -167,24 +188,14 @@ export function InsightsPage() {
                 );
               })}
             </div>
-
-            {/* Custom date pickers (only when period === 'custom') */}
-            {period === 'custom' && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <DatePicker value={customDateFrom} onChange={setCustomDateFrom} />
-                <span className="text-sm text-muted-foreground">até</span>
-                <DatePicker value={customDateTo} onChange={setCustomDateTo} />
-              </div>
-            )}
           </div>
 
-          {/* Filters row 2: Period pills + Generate + Histórico (matches quick filter row) */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Filters row 2: Period pills + Histórico + Generate (matches quick filter row) */}
+          <div className="flex flex-wrap items-center gap-2 mt-3">
             {PERIOD_TABS.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => setPeriod(tab.value)}
+                onClick={() => handlePeriodChange(tab.value)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   period === tab.value
                     ? 'bg-lupita-amber text-white'
@@ -197,11 +208,6 @@ export function InsightsPage() {
                 )}
               </button>
             ))}
-            {period !== 'custom' && (
-              <span className="text-[10px] text-muted-foreground ml-1">
-                {getPeriodDescription()}
-              </span>
-            )}
 
             <div className="h-6 w-px bg-border mx-1" />
 
