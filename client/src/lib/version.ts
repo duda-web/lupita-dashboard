@@ -1,4 +1,4 @@
-// App version — update on every significant change
-// Format: v1.X (X = total number of updates since project start)
-export const APP_VERSION = 'v1.41';
-export const APP_VERSION_DATE = '22 Fev 2026';
+// App version — update this on every change
+// Format: v.YYYYMMDD-X (X = version number for the day, starts at 1)
+export const APP_VERSION = 'v.20260224-1';
+export const APP_VERSION_DATE = '24 Fev 2026';

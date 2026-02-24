@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "/Users/dudaferreira/local/node/bin/npx",
+      "runtimeArgs": ["tsx", "watch", "server/server.ts"],
+      "port": 3001,
+      "env": {
+        "NODE_ENV": "production",
+        "PATH": "/Users/dudaferreira/local/node/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      },
+      "autoPort": false
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "/Users/dudaferreira/local/node/bin/npx",
+      "runtimeArgs": ["vite"],
+      "port": 5173,
+      "cwd": "client",
+      "env": {
+        "PATH": "/Users/dudaferreira/local/node/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    }
+  ]
+}
