@@ -61,7 +61,7 @@ export function CustomersChart({ data }: Props) {
         <h3 className="text-sm font-semibold text-foreground">Tendência de Clientes</h3>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData}>
+        <LineChart data={chartData} accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
           <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />

@@ -44,7 +44,7 @@ export function StoreMixChart({ stores }: Props) {
         <h3 className="text-sm font-semibold text-foreground">Mix por Unidade</h3>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
+        <PieChart accessibilityLayer={false}>
           <Pie
             data={chartData}
             cx="50%"

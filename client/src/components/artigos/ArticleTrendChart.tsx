@@ -125,7 +125,7 @@ export function ArticleTrendChart({ data }: Props) {
         </h3>
       </div>
       <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
+        <BarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }} accessibilityLayer={false}>
           <XAxis
             dataKey="period"
             tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}

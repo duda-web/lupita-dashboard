@@ -65,7 +65,7 @@ export function DayOfWeekChart({ data }: Props) {
         <h3 className="text-sm font-semibold text-foreground">Faturação Média por Dia da Semana</h3>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} layout="vertical">
+        <BarChart data={chartData} layout="vertical" accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
           <YAxis type="category" dataKey="day" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={70} />

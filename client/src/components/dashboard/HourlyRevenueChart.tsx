@@ -147,7 +147,7 @@ export function HourlyRevenueChart({ data: baseData, dateFrom, dateTo, storeId, 
         </div>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+        <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }} accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
           <XAxis
             dataKey="time_slot"

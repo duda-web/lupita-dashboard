@@ -90,7 +90,7 @@ export function ABCParetoChart({ data }: Props) {
       </div>
       <p className="text-[10px] text-muted-foreground mb-3">Barras = faturação individual · Linha = % acumulado · Linhas tracejadas marcam limites A (70%) e B (90%)</p>
       <ResponsiveContainer width="100%" height={360}>
-        <ComposedChart data={chartData} margin={{ top: 10, right: 40, left: 10, bottom: 60 }}>
+        <ComposedChart data={chartData} margin={{ top: 10, right: 40, left: 10, bottom: 60 }} accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
           <XAxis
             dataKey="name"

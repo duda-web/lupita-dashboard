@@ -137,7 +137,7 @@ export function ZoneMixChart({ data }: Props) {
         <h3 className="text-sm font-semibold text-foreground">Mix por Zona</h3>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
+        <PieChart accessibilityLayer={false}>
           {/* Inner ring: store breakdown (only when Todas as lojas) */}
           {hasStoreBreakdown && innerData.length > 0 && (
             <Pie

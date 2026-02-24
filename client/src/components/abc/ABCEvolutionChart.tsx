@@ -103,7 +103,7 @@ export function ABCEvolutionChart({ data }: Props) {
       </div>
       <p className="text-[10px] text-muted-foreground mb-3">Posição semanal por faturação (€) · #1 = maior faturação · Linhas a subir = artigo a ganhar relevância</p>
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
           <XAxis
             dataKey="label"

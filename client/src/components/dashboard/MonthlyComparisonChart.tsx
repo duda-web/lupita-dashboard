@@ -73,7 +73,7 @@ export function MonthlyComparisonChart({ currentYearData, previousYearData }: Pr
         <h3 className="text-sm font-semibold text-foreground">Comparativo Mensal</h3>
       </div>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData}>
+        <BarChart data={chartData} accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
           <YAxis tickFormatter={(v) => formatCompactCurrency(v)} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />

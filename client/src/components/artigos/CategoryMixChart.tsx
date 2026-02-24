@@ -109,7 +109,7 @@ export function CategoryMixChart({ data }: Props) {
         <h3 className="text-sm font-semibold text-foreground">Mix por Categoria</h3>
       </div>
       <ResponsiveContainer width="100%" height={320}>
-        <PieChart>
+        <PieChart accessibilityLayer={false}>
           <Pie
             data={chartData}
             dataKey="total_revenue"

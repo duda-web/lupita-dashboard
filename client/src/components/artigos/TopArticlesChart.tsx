@@ -168,6 +168,7 @@ export function TopArticlesChart({ data, metric = 'revenue' }: Props) {
           data={chartData}
           layout="vertical"
           margin={{ top: 0, right: 140, bottom: 0, left: 10 }}
+          accessibilityLayer={false}
         >
           <XAxis
             type="number"

@@ -95,6 +95,7 @@ export function ABCStoreComparison({ data }: Props) {
           data={chartData}
           layout="vertical"
           margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+          accessibilityLayer={false}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
           <XAxis
