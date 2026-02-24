@@ -32,14 +32,7 @@ export function FilterProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return; // Don't fetch if not logged in
     fetchLastSalesDateGeneral(filters.storeId)
-      .then((date) => {
-        setLastSalesDate(date);
-        // If using a quick filter that depends on the last sales date, update the dates
-        if (activeQuickFilter === 'this_month' || activeQuickFilter === 'this_year') {
-          const { dateFrom, dateTo } = getQuickFilterDates(activeQuickFilter, date);
-          setFilters((prev) => ({ ...prev, dateFrom, dateTo }));
-        }
-      })
+      .then((date) => setLastSalesDate(date))
       .catch(() => setLastSalesDate(null));
   }, [user, filters.storeId]);
 
