@@ -8,20 +8,24 @@ import {
   subWeeks,
   subMonths,
   subYears,
+  subDays,
   format,
 } from 'date-fns';
 import type { QuickFilter } from '@/types';
 
 /**
  * Returns date range for a quick filter.
+ * For "current" periods (this_month, this_year), uses yesterday as end date
+ * because today's data is always incomplete (day hasn't ended yet).
  * @param filter - The quick filter type
- * @param _lastSalesDate - Deprecated, kept for API compat. Always uses today as end date.
+ * @param _lastSalesDate - Kept for API compat.
  */
 export function getQuickFilterDates(
   filter: QuickFilter,
   _lastSalesDate?: string | null
 ): { dateFrom: string; dateTo: string } {
   const now = new Date();
+  const yesterday = subDays(now, 1);
   const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
   switch (filter) {
@@ -35,7 +39,7 @@ export function getQuickFilterDates(
     case 'this_month':
       return {
         dateFrom: fmt(startOfMonth(now)),
-        dateTo: fmt(now),
+        dateTo: fmt(yesterday),
       };
     case 'last_month': {
       const lastMonth = subMonths(now, 1);
@@ -47,7 +51,7 @@ export function getQuickFilterDates(
     case 'this_year':
       return {
         dateFrom: fmt(startOfYear(now)),
-        dateTo: fmt(now),
+        dateTo: fmt(yesterday),
       };
     case 'last_year': {
       const lastYear = subYears(now, 1);

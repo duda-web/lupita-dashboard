@@ -5,7 +5,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { generateInsights, fetchLastSalesDate } from '@/lib/api';
 import type { InsightsPeriod, InsightsChannel, InsightsGenerateResponse } from '@/types';
 import { Sparkles, Store, Truck, LayoutGrid, Calendar } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, subWeeks, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfWeek, endOfWeek, subWeeks, subMonths, subYears, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 const PERIOD_TABS: { value: InsightsPeriod; label: string }[] = [
   { value: 'week', label: 'Semana passada' },
@@ -21,13 +21,15 @@ const CHANNEL_OPTIONS: { value: InsightsChannel; label: string; icon: typeof Lay
   { value: 'delivery', label: 'Delivery', icon: Truck },
 ];
 
-/** Compute the date range for a given period. Always uses today as end date. */
+/** Compute the date range for a given period. Uses yesterday for current periods (month/year)
+ *  because today's data is always incomplete. */
 function computeDatesForPeriod(
   p: InsightsPeriod,
   _lastSalesDate?: string | null,
 ) {
   const now = new Date();
-  const todayStr = format(now, 'yyyy-MM-dd');
+  const yesterday = subDays(now, 1);
+  const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
 
   switch (p) {
     case 'week': {
@@ -38,7 +40,7 @@ function computeDatesForPeriod(
       };
     }
     case 'month':
-      return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: todayStr };
+      return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: yesterdayStr };
     case 'last_month': {
       const lm = subMonths(now, 1);
       return {
@@ -47,7 +49,7 @@ function computeDatesForPeriod(
       };
     }
     case 'year':
-      return { dateFrom: format(startOfYear(now), 'yyyy-MM-dd'), dateTo: todayStr };
+      return { dateFrom: format(startOfYear(now), 'yyyy-MM-dd'), dateTo: yesterdayStr };
     case 'last_year': {
       const ly = subYears(now, 1);
       return {
@@ -56,7 +58,7 @@ function computeDatesForPeriod(
       };
     }
     default:
-      return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: endStr };
+      return { dateFrom: format(startOfMonth(now), 'yyyy-MM-dd'), dateTo: yesterdayStr };
   }
 }
 
