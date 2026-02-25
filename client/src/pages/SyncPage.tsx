@@ -390,7 +390,14 @@ export function SyncPage() {
                 {history.map(entry => (
                   <tr key={entry.id} className="border-b border-border/50 hover:bg-accent/30">
                     <td className="py-2 px-3">{formatDate(entry.started_at)}</td>
-                    <td className="py-2 px-3">{statusBadge(entry.status)}</td>
+                    <td className="py-2 px-3">
+                      {statusBadge(entry.status)}
+                      {entry.error && (
+                        <p className="text-xs text-red-500 mt-0.5 max-w-[200px] truncate" title={entry.error}>
+                          {entry.error}
+                        </p>
+                      )}
+                    </td>
                     <td className="py-2 px-3 capitalize">{entry.trigger_type}</td>
                     <td className="py-2 px-3 text-right">
                       {entry.reports_succeeded}/{entry.reports_succeeded + entry.reports_failed}

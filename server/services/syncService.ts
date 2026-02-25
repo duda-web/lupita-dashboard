@@ -36,14 +36,14 @@ export async function runSync(triggerType: 'manual' | 'cron'): Promise<number> {
   // 1. Read settings
   const settings = getSyncSettings();
   if (!settings || !settings.zsbms_username || !settings.zsbms_password_encrypted) {
-    throw new Error('ZSBMS credentials not configured');
+    throw new Error('Credenciais ZSBMS não configuradas. Configure em Sincronização > Definições.');
   }
 
   let password: string;
   try {
     password = decrypt(settings.zsbms_password_encrypted);
   } catch {
-    throw new Error('Failed to decrypt ZSBMS password. Try saving credentials again.');
+    throw new Error('Falha ao desencriptar password ZSBMS. Guarde as credenciais novamente em Definições.');
   }
 
   // 2. Create sync log

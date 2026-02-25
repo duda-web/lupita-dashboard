@@ -3,7 +3,7 @@ import './env';  // Must be first — loads .env before anything else
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { initDb } from './db/queries';
+import { initDb, cleanupStaleSyncs } from './db/queries';
 
 import authRoutes from './routes/auth';
 import uploadRoutes from './routes/upload';
@@ -22,6 +22,12 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Init database
 initDb();
+
+// Cleanup any syncs left "running" from a previous server instance
+const staleCount = cleanupStaleSyncs();
+if (staleCount > 0) {
+  console.log(`[Sync] Cleaned up ${staleCount} stale sync(s) from previous run`);
+}
 
 // Middleware
 app.use(cors());

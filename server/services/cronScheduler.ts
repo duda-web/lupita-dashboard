@@ -6,7 +6,7 @@
  */
 
 import cron from 'node-cron';
-import { getSyncSettings } from '../db/queries';
+import { getSyncSettings, createSyncLog, updateSyncLog } from '../db/queries';
 import { runSync, isRunning } from './syncService';
 
 let scheduledTask: cron.ScheduledTask | null = null;
@@ -67,6 +67,16 @@ function startCron(expression: string): void {
       console.log(`[Cron] Sync started with ID ${syncId}`);
     } catch (err: any) {
       console.error(`[Cron] Failed to start sync: ${err.message}`);
+      // Log failure to sync_log so it's visible in the UI (not just console)
+      try {
+        const failedId = createSyncLog('cron');
+        updateSyncLog(failedId, {
+          status: 'failed',
+          error: err.message || 'Erro desconhecido ao iniciar sincronização',
+        });
+      } catch {
+        // DB write failed too — nothing more we can do
+      }
     }
   });
 

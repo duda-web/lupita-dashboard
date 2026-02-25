@@ -2130,3 +2130,19 @@ export function getSyncHistory(limit: number = 20): any[] {
 export function getLatestSync(): any {
   return getDb().prepare('SELECT * FROM sync_log ORDER BY started_at DESC LIMIT 1').get() || null;
 }
+
+/**
+ * Mark any orphaned "running" sync entries as failed.
+ * Called on server startup — if the server restarted while a sync was in progress,
+ * the in-memory currentSyncId is lost but the DB entry stays "running" forever.
+ */
+export function cleanupStaleSyncs(): number {
+  const result = getDb().prepare(`
+    UPDATE sync_log SET
+      status = 'failed',
+      finished_at = datetime('now'),
+      error = 'Servidor reiniciou durante a sincronização'
+    WHERE status = 'running'
+  `).run();
+  return result.changes;
+}
